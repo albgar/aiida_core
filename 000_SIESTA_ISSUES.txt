@@ -1,0 +1,14 @@
+Siesta plugin issues
+
+-- The output structure will not use the right names, only the element
+   names. This can be fixed at the CML level, or, more robustly, by
+   reusing the input structure and changing only the site positions.
+
+-- The CML file stores forces at each geometry iteration, but not the
+   stress. Trajectories will then contain only positions and forces.
+
+-- I do not know how to deal with the "restart" capability.
+
+-- Band structures are fundamentally different from BZ
+   sampling. K-point specification is different. Not implemented yet.
+
