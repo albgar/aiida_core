@@ -82,20 +82,18 @@ parameters = ParameterData(dict={
 'dm:numberpulay': 5,
 'dm:mixingweight': 0.050,
 'dm:tolerance': 1.e-4,
-'dm:mixscf1': True,
+'dm-mixscf1': True,
 'neglnonoverlapint': False,
 'solutionmethod': 'diagon',
-'electronictemperature': '100.000 k',
-'# md:typeofrun': 'cg',
-'# md:numcgsteps': 1000,
-'# md:maxcgdispl': '0.200 bohr',
-'# md:maxforcetol': '0.050 ev/ang',
+'electronictemperature': '100.000 K',
+'md-typeofrun': 'cg',
+'md-numcgsteps': 3,
+'md-maxcgdispl': '0.200 bohr',
+'md-maxforcetol': '0.050 eV/Ang',
 'writeforces': True,
 'writecoorstep': True,
-'xml:write': True,
+'xml-write': True,
 'writemullikenpop': 1,
-'md:usesavexv': True,
-'dm:usesavedm': True
 })
 
 #
