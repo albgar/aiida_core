@@ -73,7 +73,7 @@ def is_variable_geometry(xmldoc):
      else:
           return False
 
-def get_last_structure(xmldoc):
+def get_last_structure(xmldoc, input_structure):
 
     from aiida.orm import DataFactory
 
@@ -99,10 +99,16 @@ def get_last_structure(xmldoc):
          data = l.childNodes[0].data.split()
          cell.append([float(s) for s in data])
 
-    StructureData = DataFactory('structure')
-    s = StructureData(cell=cell)
-    for atom in atomlist:
-         s.append_atom(position=tuple(atom[1]), symbols=[atom[0]])
+    # Generally it is better to pass the input structure
+    # and reset the data, since site 'names' are not handled by
+    # the CML file (at least not in Siesta versions <= 4.0)
+    #
+
+    s = input_structure.copy()
+    self.logger.info("Using input structure as template for out_structure")
+    s.reset_cell(cell)
+    new_pos = [atom[1] for atom in atomlist]
+    s.reset_sites_positions(new_pos)
           
     return s
 
@@ -207,7 +213,12 @@ class SiestaParser(Parser):
 
         # If the structure has changed, save it
         if is_variable_geometry(xmldoc):
-             struc = get_last_structure(xmldoc)
+             # Get the input structure to copy its site names,
+             # as the CML file traditionally contained only the
+             # atomic symbols.
+             #
+             in_struc = self._calc.get_inputs_dict()['structure']
+             struc = get_last_structure(xmldoc,in_struc)
              result_list.append((self.get_linkname_outstructure(),struc))
 
         # Save forces and stress in an ArrayData object
