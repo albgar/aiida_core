@@ -105,7 +105,6 @@ def get_last_structure(xmldoc, input_structure):
     #
 
     s = input_structure.copy()
-    self.logger.info("Using input structure as template for out_structure")
     s.reset_cell(cell)
     new_pos = [atom[1] for atom in atomlist]
     s.reset_sites_positions(new_pos)
@@ -201,6 +200,10 @@ class SiestaParser(Parser):
         # We get everything from the CML file
 
         xmldoc = get_parsed_xml_doc(xml_path)
+        
+        # This is an example of how we can access input items
+        in_struc = self._calc.get_inputs_dict()['structure']
+        
         result_dict = get_dict_from_xml_doc(xmldoc)
 
         # Add parser info dictionary
@@ -217,7 +220,6 @@ class SiestaParser(Parser):
              # as the CML file traditionally contained only the
              # atomic symbols.
              #
-             in_struc = self._calc.get_inputs_dict()['structure']
              struc = get_last_structure(xmldoc,in_struc)
              result_list.append((self.get_linkname_outstructure(),struc))
 
