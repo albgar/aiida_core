@@ -54,8 +54,12 @@ def get_dict_from_xml_doc(xmldoc):
              value = data.childNodes[0].nodeValue
              units = data.attributes['units'].value
              loc_colon = units.find(':')
-             # I want a tuple here...
-             scalar_dict[name] = (value, units[loc_colon+1:])
+             unit_name = units[loc_colon+1:]
+             loc_colon = name.find(':')
+             reduced_name = name[loc_colon+1:]
+             # Put units in separate entries, as in QE
+             scalar_dict[reduced_name] = value
+             scalar_dict[reduced_name+"_units"] = unit_name
 
      scalar_dict['variable_geometry'] = is_variable_geometry(xmldoc)
      return scalar_dict
