@@ -695,7 +695,12 @@ def get_input_data_text(key,val, mapping=None):
         return "".join(list_of_strings)
     else:
         # single value
-        return "{0}  {1}\n".format(key, my_conv_to_fortran(val))
+        if key[:6] == '%block':
+            bname = key.split()[1]
+            b1 = "{0}  {1}".format(key, my_conv_to_fortran(val))
+            return b1 + "\n%endblock " + bname + "\n"
+        else:
+            return "{0}  {1}\n".format(key, my_conv_to_fortran(val))
 
 def _lowercase_dict(d, dict_name):
     from collections import Counter
