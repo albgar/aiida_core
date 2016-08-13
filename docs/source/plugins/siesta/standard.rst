@@ -7,7 +7,7 @@ Description
 A plugin for Siesta. This is work in progress. Basic functionality is
 implemented, but there remain some important points to address.
 
-(These docs for version: `0.4` of the plugin)
+(These docs for version: `0.5` of the plugin)
 
 Supported Siesta versions
 -------------------------
@@ -48,14 +48,24 @@ Inputs
 
     
 * **parameters**, class :py:class:`ParameterData <aiida.orm.data.parameter.ParameterData>`
-    A dictionary with (so far) scalar fdf variables. Units are
-    specified for now as part of the value string. For example::
-
+    A dictionary with scalar fdf variables and blocks. Any units are
+    specified for now as part of the value string. Blocks are entered
+    by using an appropriate key and Python's multiline string
+    constructor. For example::
+    
         {
           "mesh-cutoff": "200 Ry",
           "dm-tolerance": "0.0001",
+	  "%block example-block": """
+	  first line
+	  second line             """,
         }
 
+    Note that Siesta fdf keywords allow '.', '-', or nothing as
+    internal separators. AiiDA does not allow the use of '.' in
+    nodes to be inserted in the database, so it should not be used
+    in the input script (or removed before assigning the dictionary to
+    the ParameterData instance).
 
 * **pseudo**, class :py:class:`PsfData <aiida.orm.data.psf.PsfData>`
 
@@ -76,14 +86,13 @@ Inputs
 * **basis**, class :py:class:`ParameterData  <aiida.orm.data.parameter.ParameterData>`
   
     A dictionary specifically intended for basis set
-    information. Currently there is only a stub implementation
-    targeting the `pao-basis-sizes` block, but soon there will be
-    more functionality (most likely implemented as raw fdf-block
-    content in a first round).
+    information. It follows the same structure as the **parameters** element,
+    including the allowed use of fdf-block items.
 
 * **kpoints**, class :py:class:`KpointsData <aiida.orm.data.array.kpoints.KpointsData>`
   Reciprocal space points on which to build the wavefunctions. Can either be 
-  a mesh or a list of points with/without weights
+  a mesh or a list of points with/without weights. There is no support
+  yet for Siesta's kgrid-cutoff keyword 
 
 Outputs
 -------
@@ -95,17 +104,19 @@ compiled in and active in the run!
   (accessed by ``calculation.res``)
 
     A dictionary with metadata and energy values. Units are specified
-    by means of the second component of a tuple. Suggestions welcome::
-
+    by means of an extra item with '_units' appended to the key::
+    
         {
           "siesta:Version": "siesta-4.0-540",
-          "siesta:E_fermi": ("-3.24", "eV"),
-          "siesta:Free_EK": ("-6656.2343", "eV")
+          "E_fermi": "-3.24",
+	  "E_fermi_units": "eV",
+          "Free_EK": "-6656.2343"
+	  "Free_EK_units": "eV",
 	}
 
 * **output_array** :py:class:`ArrayData <aiida.orm.data.array.ArrayData>`
 
-  Contains forces (eV/Angstrom) and stresses (GPa).
+  Contains the final forces (eV/Angstrom) and stresses (GPa).
   
 
 * **output_structure** :py:class:`StructureData <aiida.orm.data.structure.StructureData>`

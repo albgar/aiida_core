@@ -26,7 +26,7 @@ class SiestaCalculation(JobCalculation):
     """
     Add docs
     """
-    _siesta_plugin_version = '0.4'
+    _siesta_plugin_version = '0.5'
     
     def _init_internal_params(self):
         super(SiestaCalculation, self)._init_internal_params()
@@ -237,7 +237,9 @@ class SiestaCalculation(JobCalculation):
         orig_input_params = _lowercase_dict(parameters.get_dict(),
             dict_name='parameters')
 
-        # substitute semicolon with .  ( AG: '-' would be better)
+        # This is to be removed. Sanitization should be done
+        # in the script, and the semicolon was an unfortunate choice.
+        # substitute semicolon with .  ( AG: '-' is more legible)
         input_params = { k.replace(':','-') :v for k,v in
             orig_input_params.iteritems() }
 

@@ -69,20 +69,27 @@ s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 
 elements = list(s.get_symbols_set())
 
-parameters = ParameterData(dict={
-'xc:functional': 'LDA',
-'xc:authors': 'CA',
-'spinpolarized': True,
+#
+# Note the use of '.' in some entries. This will be fixed below.
+# Note also that some entries have ':' as separator. This is not
+# allowed in Siesta, and will be fixed by the plugin itself. The
+# latter case is an unfortunate historical choice. It should not
+# be used in modern scripts.
+#
+params_dict= {
+'xc.functional': 'LDA',
+'xc.authors': 'CA',
+'spin:polarized': True,
 'noncollinearspin': False,
-'meshcutoff': '200.000 Ry',
+'mesh-cutoff': '200.000 Ry',
 'maxscfiterations': 1000,
-'dm:numberpulay': 5,
-'dm:mixingweight': 0.050,
-'dm:tolerance': 1.e-4,
+'dm-numberpulay': 5,
+'dm-mixingweight': 0.050,
+'dm-tolerance': 1.e-4,
 'dm-mixscf1': True,
-'neglnonoverlapint': False,
-'solutionmethod': 'diagon',
-'electronictemperature': '100.000 K',
+'negl-nonoverlap-int': False,
+'solution-method': 'diagon',
+'electronic-temperature': '100.000 K',
 'md-typeofrun': 'cg',
 'md-numcgsteps': 2,
 'md-maxcgdispl': '0.200 bohr',
@@ -90,15 +97,22 @@ parameters = ParameterData(dict={
 'writeforces': True,
 'writecoorstep': True,
 'xml-write': True,
-'writemullikenpop': 1,
+'write-mulliken-pop': 1,
 '%block example-block': """
 first line
 second line    """,
-})
+}
+#
+# Sanitize, as '.' is not kosher for the database handlers
+#
+params_dict = { k.replace('.','-') :v for k,v in params_dict.iteritems() }
+#
+parameters = ParameterData(dict=params_dict)
+
 #
 # The basis dictionary follows the same convention
 #
-basis = ParameterData(dict={
+basis_dict = {
 'pao-basistype': 'split',
 'pao-splitnorm': 0.150,
 'pao-energyshift': '0.020 Ry',
@@ -106,8 +120,12 @@ basis = ParameterData(dict={
 C    SZP
 Cred SZ
 H    SZP  """,
-})
-
+}
+#
+basis_dict = { k.replace('.','-') :v for k,v in  basis_dict.iteritems() }
+#
+basis = ParameterData(dict=basis_dict)
+#
 kpoints = KpointsData()
 
 # method mesh
