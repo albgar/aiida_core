@@ -147,14 +147,16 @@ class SiestaCalculation(JobCalculation):
             raise InputValidationError("parameters is not of type "
                 "ParameterData")
 
-        try:
-            basis = inputdict.pop(self.get_linkname('basis'))
-        except KeyError:
-            raise InputValidationError("No basis set specified for this "
-                "calculation")
-        if not isinstance(basis, ParameterData):
-            raise InputValidationError("basis not of type ParameterData")
-        
+        # Basis can be undefined, and defaults to an empty dictionary,
+        # Siesta will use default parameters
+        basis = inputdict.pop(self.get_linkname('basis'),None)
+        if basis is None:
+            input_basis = {}
+        else:
+            if not isinstance(basis, ParameterData):
+                raise InputValidationError("basis not of type ParameterData")
+            input_basis=basis.get_dict()
+
         try:
             structure = inputdict.pop(self.get_linkname('structure'))
         except KeyError:
@@ -333,23 +335,6 @@ class SiestaCalculation(JobCalculation):
         del atomic_positions_card_list # Free memory
         atomic_positions_card +="%endblock atomiccoordinatesandatomicspecies\n"
 
-        # --------------- BASIS SET ---------------
-        input_basis=basis.get_dict()
-
-        kindnames_in_basis = input_basis.keys()
-        kindnames_in_structure = [ _.name for _ in structure.kinds ]
-        if set(kindnames_in_basis) != set(kindnames_in_structure):
-            raise InputValidationError('The kind names find in the basis ({}) '
-                'is different from those of the '
-                'structure ({})'.format(kindnames_in_basis, 
-                kindnames_in_structure)  )
-        basis_set_card_list = ["%block pao.basissizes\n"]
-        basis_set_card_list += [ "{0:6} {1:6}\n".format(elm.rjust(6), 
-                               input_basis[elm].rjust(6))
-                               for elm in input_basis ]
-        basis_set_card = "".join(basis_set_card_list)
-        # del basis_set_card_list # Free memory
-        basis_set_card += "%endblock pao.basissizes\n"
 
         # --------------- K-POINTS ----------------
         if True:
@@ -432,11 +417,21 @@ class SiestaCalculation(JobCalculation):
                 infile.write(get_input_data_text(k,v))
                 # ,mapping=mapping_species))
 
-            # Write cards now
-            infile.write(basis_set_card)
+            # Basis set info is processed just like the general
+            # parameters section. Some discipline is needed to
+            # put any basis-related parameters (including blocks)
+            # in the basis dictionary in the input script.
+            #
+            infile.write("#\n# -- Basis Set Info follows\n#\n")
+            for k, v in input_basis.iteritems():
+                infile.write(get_input_data_text(k,v))
+
+            # Write previously generated cards now
+            infile.write("#\n# -- Structural Info follows\n#\n")
             infile.write(atomic_species_card)
             infile.write(cell_parameters_card)
             infile.write(atomic_positions_card)
+            infile.write("#\n# -- K-points Info follows\n#\n")
             infile.write(kpoints_card)
 
         # operations for restart
