@@ -70,9 +70,6 @@ s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 elements = list(s.get_symbols_set())
 
 parameters = ParameterData(dict={
-'pao:basistype': 'split',
-'pao:splitnorm': 0.150,
-'pao:energyshift': '0.020 Ry',
 'xc:functional': 'LDA',
 'xc:authors': 'CA',
 'spinpolarized': True,
@@ -87,24 +84,29 @@ parameters = ParameterData(dict={
 'solutionmethod': 'diagon',
 'electronictemperature': '100.000 K',
 'md-typeofrun': 'cg',
-'md-numcgsteps': 3,
+'md-numcgsteps': 2,
 'md-maxcgdispl': '0.200 bohr',
 'md-maxforcetol': '0.050 eV/Ang',
 'writeforces': True,
 'writecoorstep': True,
 'xml-write': True,
 'writemullikenpop': 1,
+'%block example-block': """
+first line
+second line    """,
 })
-
 #
-#  This entry is handled in a special way, interpreted as
-#  a pao-basis-sizes block
+# The basis dictionary follows the same convention
 #
 basis = ParameterData(dict={
-                'C': 'SZP',
-                'Cred': 'SZ',
-                'H': 'SZP',
-                })
+'pao-basistype': 'split',
+'pao-splitnorm': 0.150,
+'pao-energyshift': '0.020 Ry',
+'%block pao-basis-sizes' :"""
+C    SZP
+Cred SZ
+H    SZP  """,
+})
 
 kpoints = KpointsData()
 

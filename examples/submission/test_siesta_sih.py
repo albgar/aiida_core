@@ -148,8 +148,6 @@ if auto_pseudos:
         sys.exit(1)
 
 parameters = ParameterData(dict={
-                'pao:basis-size': 'SZ',
-                'pao:energyshift': '300 meV',
                 'xc:functional': 'LDA',
                 'xc:authors': 'CA',
                 'spinpolarized': True,
@@ -158,8 +156,8 @@ parameters = ParameterData(dict={
                 'dm:numberpulay': 4,
                 'dm:mixingweight': 0.3,
                 'dm:tolerance': 1.e-3,
-                'solutionmethod': 'diagon',
-                'electronictemperature': '25 meV',
+                'Solution-method': 'diagon',
+                'electronic-temperature': '25 meV',
                 'md:typeofrun': 'cg',
                 'md:numcgsteps': 3,
                 'md:maxcgdispl': '0.1 Ang',
@@ -171,9 +169,11 @@ parameters = ParameterData(dict={
                 })
 
 basis = ParameterData(dict={
-                'Si': 'SZP',
-                'H': 'SZP',
-                })
+'pao-energy-shift': '300 meV',
+'%block pao-basis-sizes': """
+Si SZP
+H  DZP                    """,
+})
 
 kpoints = KpointsData()
 

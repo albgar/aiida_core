@@ -1,7 +1,8 @@
 Siesta plugin issues
 
 -- The CML file stores forces at each geometry iteration, but not the
-   stress. Trajectories will then contain only positions and forces.
+   stress. Trajectories (not implemented yet) will then contain only
+   positions and forces.
 
 -- I do not know how to deal with the "restart" capability.
 
@@ -11,6 +12,7 @@ Siesta plugin issues
 -- Units are now given in XX_units entries, but the XX itself might
    not be standard.
 
--- I still need to implement blocks
+-- Basis-set info is now dealt with as a special set of parameters.
+
 
 
