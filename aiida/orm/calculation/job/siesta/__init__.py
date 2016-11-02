@@ -137,7 +137,21 @@ class SiestaCalculation(JobCalculation):
         
         local_copy_list = []
         remote_copy_list = []
-        
+
+        # Process the settings dictionary first
+        # Settings can be undefined, and defaults to an empty dictionary
+        settings = inputdict.pop(self.get_linkname('settings'),None)
+        if settings is None:
+            settings_dict = {}
+        else:
+            if not isinstance(settings,  ParameterData):
+                raise InputValidationError("settings, if specified, must be of "
+                                           "type ParameterData")
+            # Settings converted to uppercase
+            # WHY??
+            settings_dict = _uppercase_dict(settings.get_dict(),
+                                            dict_name='settings')
+
         try:
             parameters = inputdict.pop(self.get_linkname('parameters'))
         except KeyError:
@@ -166,33 +180,26 @@ class SiestaCalculation(JobCalculation):
             raise InputValidationError("structure is not of type StructureData")
 
         # k-points
-        # It is currently not possible to elide the kpoints node, even for
-        # gamma-point calculations.
-        # See the logic below
+        # It is now possible to elide the kpoints node.
         #
         # Note also that a *different* set of k-points is needed if a band
         # calculation is carried out. This should be specified somehow in
         # the 'settings' dictionary (see QE example...)
-        try:
-            kpoints = inputdict.pop(self.get_linkname('kpoints'))
-        except KeyError:
-            raise InputValidationError("No kpoints specified for this "
-                "calculation")
-        if not isinstance(kpoints,  KpointsData):
-            raise InputValidationError("kpoints is not of type KpointsData")
-
-        # Settings can be undefined, and defaults to an empty dictionary
-        settings = inputdict.pop(self.get_linkname('settings'),None)
-        if settings is None:
-            settings_dict = {}
+        
+        kpoints = inputdict.pop(self.get_linkname('settings'),None)
+        if kpoints is None:
+            # Do nothing. Assume it is a gamma-point calculation
+            # We might want to check this in the settings dictionary,
+            # but only that it does not conflict
+            gamma_only = settings_dict.pop("GAMMA_ONLY",False)
+            if not gamma_only:
+                raise InputValidationError("No kpoints node, but "
+                                           "gamma_only is False in settings")
         else:
-            if not isinstance(settings,  ParameterData):
-                raise InputValidationError("settings, if specified, must be of "
-                                           "type ParameterData")
-            # Settings converted to uppercase
-            # WHY??
-            settings_dict = _uppercase_dict(settings.get_dict(),
-                                            dict_name='settings')
+            if not isinstance(kpoints,  KpointsData):
+                raise InputValidationError("kpoints if specified, must be of "
+                                           "type KpointsData")
+
         
         pseudos = {}
         # I create here a dictionary that associates each kind name to a pseudo
@@ -348,7 +355,7 @@ class SiestaCalculation(JobCalculation):
 
 
         # --------------- K-POINTS ----------------
-        if True:
+        if kpoints is not None:
             #
             # Get a mesh, or a list of kpoints with weights
             # NOTE that there is not yet support for the 'kgrid-cutoff'
@@ -464,7 +471,8 @@ class SiestaCalculation(JobCalculation):
             infile.write(cell_parameters_card)
             infile.write(atomic_positions_card)
             infile.write("#\n# -- K-points Info follows\n#\n")
-            infile.write(kpoints_card)
+            if kpoints is not None:
+                infile.write(kpoints_card)
 
         # operations for restart
         # copy remote output dir, if specified

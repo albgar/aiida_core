@@ -37,13 +37,25 @@ try:
 except IndexError:
     codename = 'Siesta-4.0@rinaldo'
 
-
-queue = None
-settings = None
-#####
-
 code = test_and_get_code(codename, expected_code_type='siesta')
+#
+#  Set up calculation object first
+#
+calc = code.new_calc()
+calc.label = "Test Siesta. Benzene molecule"
+calc.description = "Test calculation with the Siesta code. Benzene molecule"
 
+#
+#----Settings first  -----------------------------
+#
+settings_dict={'also_bands': False, 'gamma_only': True}
+settings = ParameterData(dict=settings_dict)
+calc.use_settings(settings)
+#---------------------------------------------------
+
+#
+# Structure -----------------------------------------
+#
 alat = 15. # angstrom
 cell = [[alat, 0., 0.,],
         [0., alat, 0.,],
@@ -68,7 +80,11 @@ s.append_atom(position=(0.000,0.000,4.442),symbols=['C'])
 s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 
 elements = list(s.get_symbols_set())
+calc.use_structure(s)
+#-------------------------------------------------------------
 
+#
+# Parameters ---------------------------------------------------
 #
 # Note the use of '.' in some entries. This will be fixed below.
 # Note also that some entries have ':' as separator. This is not
@@ -108,9 +124,12 @@ second line    """,
 params_dict = { k.replace('.','-') :v for k,v in params_dict.iteritems() }
 #
 parameters = ParameterData(dict=params_dict)
-
+calc.use_parameters(parameters)
 #
-# The basis dictionary follows the same convention
+#----------------------------------------------------------
+#
+# Basis Set Info ------------------------------------------
+# The basis dictionary follows the 'parameters' convention
 #
 basis_dict = {
 'pao-basistype': 'split',
@@ -125,37 +144,11 @@ H    SZP  """,
 basis_dict = { k.replace('.','-') :v for k,v in  basis_dict.iteritems() }
 #
 basis = ParameterData(dict=basis_dict)
-#
-kpoints = KpointsData()
-
-# method mesh
-kpoints_mesh = 1
-kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
-
-# to retrieve the bands
-# (the object settings is optional)
-#settings_dict={'also_bands': True}
-#settings = ParameterData(dict=settings_dict)
-
-## For remote codes, it is not necessary to manually set the computer,
-## since it is set automatically by new_calc
-#computer = code.get_remote_computer()
-#calc = code.new_calc(computer=computer)
-
-calc = code.new_calc()
-calc.label = "Test Siesta. Benzene molecule"
-calc.description = "Test calculation with the Siesta code. Benzene molecule"
-calc.set_max_wallclock_seconds(30*60) # 30 min
-
-calc.set_resources({"num_machines": 1})
-
-if queue is not None:
-    calc.set_queue_name(queue)
-
-calc.use_structure(s)
-calc.use_parameters(parameters)
 calc.use_basis(basis)
+#--------------------------------------------------------------
 
+
+# Pseudopotentials ----------------------------------------------
 #
 # This exemplifies the handling of pseudos for different species
 # Those sharing the same pseudo should be indicated.
@@ -175,11 +168,21 @@ for fname, kinds, in raw_pseudos:
         
     # Attach pseudo node to the calculation
     calc.use_pseudo(pseudo,kind=kinds)
+#-------------------------------------------------------------------
 
-calc.use_kpoints(kpoints)
+## For remote codes, it is not necessary to manually set the computer,
+## since it is set automatically by new_calc
+#computer = code.get_remote_computer()
+#calc = code.new_calc(computer=computer)
 
-if settings is not None:
-    calc.use_settings(settings)
+calc.set_max_wallclock_seconds(30*60) # 30 min
+
+calc.set_resources({"num_machines": 1})
+#------------------
+queue = None
+# calc.set_queue_name(queue)
+#------------------
+
 #from aiida.orm.data.remote import RemoteData
 #calc.set_outdir(remotedata)
 
