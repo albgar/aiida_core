@@ -205,9 +205,19 @@ class SiestaParser(Parser):
 
         xmldoc = get_parsed_xml_doc(xml_path)
         
-        # This is an example of how we can access input items
+        # These are examples of how we can access input items
+        #
+        # Structure (mandatory)
+        #
         in_struc = self._calc.get_inputs_dict()['structure']
-        
+        #
+        # Settings (optional)
+        #
+        try:
+             in_settings = self._calc.get_inputs_dict()['settings']
+        except KeyError:
+             in_settings = None
+
         result_dict = get_dict_from_xml_doc(xmldoc)
 
         # Add parser info dictionary
