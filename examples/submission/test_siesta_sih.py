@@ -183,8 +183,8 @@ kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 
 # to retrieve the bands
 # (the object settings is optional)
-#settings_dict={'also_bands': True}
-#settings = ParameterData(dict=settings_dict)
+settings_dict={'gamma_only': True}
+settings = ParameterData(dict=settings_dict)
 
 ## For remote codes, it is not necessary to manually set the computer,
 ## since it is set automatically by new_calc

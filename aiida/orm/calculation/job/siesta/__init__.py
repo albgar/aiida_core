@@ -186,7 +186,7 @@ class SiestaCalculation(JobCalculation):
         # calculation is carried out. This should be specified somehow in
         # the 'settings' dictionary (see QE example...)
         
-        kpoints = inputdict.pop(self.get_linkname('settings'),None)
+        kpoints = inputdict.pop(self.get_linkname('kpoints'),None)
         if kpoints is None:
             # Do nothing. Assume it is a gamma-point calculation
             # We might want to check this in the settings dictionary,
@@ -413,9 +413,10 @@ class SiestaCalculation(JobCalculation):
             # This should be caught earlier
             
 
-            kpoints_card_list = ["%block kgrid_monkhorst_pack\n"]
     
             if kpoints_type == "automatic":
+                
+                kpoints_card_list = ["%block kgrid_monkhorst_pack\n"]
                 #
                 # This will fail if has_mesh is False (for the case of a list),
                 # since in that case 'offset' is undefined.
@@ -435,15 +436,14 @@ class SiestaCalculation(JobCalculation):
                 "{0:6} {1:6} {2:6} {3:18.10f}\n".format(
                     0, 0, mesh[2], the_offset[2]))
                 
+                kpoints_card = "".join(kpoints_card_list)
+                kpoints_card += "%endblock kgrid_monkhorst_pack\n"
+                del kpoints_card_list
+            
             elif kpoints_type == "gamma":
+
                 # nothing to be written in this case
                 pass
-
-            # For the 'gamma' case, we will end up with an empty block...
-            # this is a bug.
-            kpoints_card = "".join(kpoints_card_list)
-            kpoints_card += "%endblock kgrid_monkhorst_pack\n"
-            del kpoints_card_list
 
         # ================ Namelists and cards ===================
         
@@ -472,7 +472,8 @@ class SiestaCalculation(JobCalculation):
             infile.write(atomic_positions_card)
             infile.write("#\n# -- K-points Info follows\n#\n")
             if kpoints is not None:
-                infile.write(kpoints_card)
+                if kpoints_type == "automatic":
+                    infile.write(kpoints_card)
 
         # operations for restart
         # copy remote output dir, if specified
