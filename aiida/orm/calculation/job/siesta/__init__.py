@@ -165,6 +165,14 @@ class SiestaCalculation(JobCalculation):
         if not isinstance(structure,  StructureData):
             raise InputValidationError("structure is not of type StructureData")
 
+        # k-points
+        # It is currently not possible to elide the kpoints node, even for
+        # gamma-point calculations.
+        # See the logic below
+        #
+        # Note also that a *different* set of k-points is needed if a band
+        # calculation is carried out. This should be specified somehow in
+        # the 'settings' dictionary (see QE example...)
         try:
             kpoints = inputdict.pop(self.get_linkname('kpoints'))
         except KeyError:
@@ -182,6 +190,7 @@ class SiestaCalculation(JobCalculation):
                 raise InputValidationError("settings, if specified, must be of "
                                            "type ParameterData")
             # Settings converted to uppercase
+            # WHY??
             settings_dict = _uppercase_dict(settings.get_dict(),
                                             dict_name='settings')
         
@@ -340,6 +349,11 @@ class SiestaCalculation(JobCalculation):
 
         # --------------- K-POINTS ----------------
         if True:
+            #
+            # Get a mesh, or a list of kpoints with weights
+            # NOTE that there is not yet support for the 'kgrid-cutoff'
+            # option in Siesta.
+            #
             try:
                 mesh,offset = kpoints.get_kpoints_mesh()
                 has_mesh = True
@@ -360,7 +374,12 @@ class SiestaCalculation(JobCalculation):
                     _,weights = kpoints.get_kpoints(also_weights=True)
                 except AttributeError:
                     weights = [1.] * num_kpoints
-            
+
+            # Note this variable in the settings dictionary. It defaults
+            # to False if not found.
+            # If False, we have an 'automatic' type case.
+
+            # Why use 'pop' ?
             gamma_only = settings_dict.pop("GAMMA_ONLY",False)
             
             if gamma_only:
@@ -382,9 +401,18 @@ class SiestaCalculation(JobCalculation):
             else:
                 kpoints_type = "automatic"
 
+            # NOTE that if we specify a list of k-points, Siesta
+            # cannot currently accept it.
+            # This should be caught earlier
+            
+
             kpoints_card_list = ["%block kgrid_monkhorst_pack\n"]
     
             if kpoints_type == "automatic":
+                #
+                # This will fail if has_mesh is False (for the case of a list),
+                # since in that case 'offset' is undefined.
+                #
                 if any( [ (i!=0. and i !=0.5) for i in offset] ):
                     raise InputValidationError("offset list must only be made "
                                                "of 0 or 0.5 floats")
@@ -403,7 +431,9 @@ class SiestaCalculation(JobCalculation):
             elif kpoints_type == "gamma":
                 # nothing to be written in this case
                 pass
-                
+
+            # For the 'gamma' case, we will end up with an empty block...
+            # this is a bug.
             kpoints_card = "".join(kpoints_card_list)
             kpoints_card += "%endblock kgrid_monkhorst_pack\n"
             del kpoints_card_list
@@ -451,12 +481,17 @@ class SiestaCalculation(JobCalculation):
         calcinfo.uuid = self.uuid
         #
         # Empty command line by default
+        # Why use 'pop' ?
         cmdline_params = settings_dict.pop('CMDLINE', [])
+
+        # Comment this paragraph better, if applicable to Siesta
+        #
         #we commented calcinfo.stin_name and added it here in cmdline_params
         #in this way the mpirun ... pw.x ... < aiida.in 
         #is replaced by mpirun ... pw.x ... -in aiida.in
         # in the scheduler, _get_run_line, if cmdline_params is empty, it 
         # simply uses < calcinfo.stin_name
+        #
         if cmdline_params: 
             calcinfo.cmdline_params = list(cmdline_params)
         calcinfo.local_copy_list = local_copy_list
@@ -485,9 +520,13 @@ class SiestaCalculation(JobCalculation):
             [])
         calcinfo.retrieve_list += settings_retrieve_list
         calcinfo.retrieve_list += [ self._OUTPUT_FILE_NAME ]
-        
-        if settings_dict:
-            raise NotImplementedError('no settings implementation')
+
+        #
+        # This is probably unnecessary... we have been using the functionality
+        # all along...
+        #
+        #if settings_dict:
+        #   raise NotImplementedError('no settings implementation')
         
         return calcinfo
 
@@ -516,6 +555,10 @@ class SiestaCalculation(JobCalculation):
         """
         # If it is a list of strings, and not a single string: join them
         # by underscore
+        #
+        # It might be better to use another character instead of '_'. As it
+        # is now, it conflicts with species names of the form Symbol_extra.
+
         if isinstance(kind, (tuple, list)):
             suffix_string = "_".join(kind) 
         elif isinstance(kind, basestring):
