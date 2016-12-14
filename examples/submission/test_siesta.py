@@ -48,7 +48,8 @@ calc.description = "Test calculation with the Siesta code. Benzene molecule"
 #
 #----Settings first  -----------------------------
 #
-settings_dict={'also_bands': False, 'gamma_only': True}
+settings_dict={'also_bands': False, 'gamma_only': True,
+               'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
 settings = ParameterData(dict=settings_dict)
 calc.use_settings(settings)
 #---------------------------------------------------
