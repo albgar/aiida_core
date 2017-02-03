@@ -109,7 +109,8 @@ O SZP                    """,
 })
 
 
-#     K-POINTS for bands, uncomment your favourite   ###
+####            K-POINTS for bands, uncomment your favourite                          ###
+# NOTE: bandskpoints.set_cell(from_struct.cell, from_struct.pbc) HAS TO BE SET ALWAYS ###
 bandskpoints = KpointsData()
 
 ##..Set a path, label needed, 40 is number of kp between W-L and between L-G..##
