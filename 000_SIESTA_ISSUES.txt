@@ -8,7 +8,24 @@ Siesta plugin issues
 
 -- Band structures are fundamentally different from BZ
    sampling. K-point specification is different. Not implemented yet.
-
+   Suggested solution:
+   The user should define in input bandskpoints, a KpontsData
+   structure containing information on the kpoints where to calculate bands.
+   !!!bandskpoints.set_cell(..,..) HAS ALWAYS TO BE SET, OTHERWISE PARSINGFAIL!!!
+   !!!  (THIS SHOULD BE IMPROVED, AT LEAST I SHOULD PUT AN ERROR MESSAGE)     !!!
+   Distinction between BandLines and BandPoints is automatically done
+   looking for labels in bandskpoints: I assume it's reasonable to expect 
+   some labels (Gamma, X, L, ...) when you define a line, no labels for points.
+   File /example/submission/siesta_cif_bands.py sould help to understand.
+   Another possibility would be to set a flag in input.
+   BandLinesScale ReciprocalLatticeVectors is always set.
+   Bands are stored using the already implemented BandsData class and parsed
+   reading the ASCI file .bands (we have to discuss about .xml).
+   You can easly export bands in various formats. Be aware that kpoints
+   in siesta file .bands are in 2*pi/A where A in bohr, while
+   in aiida A is in Ang (a factor 1.889725989 of difference).
+   Kpoints for bands are stored twice, but it's the same for QuantumEspresso.
+   
 -- Units are now given in XX_units entries, but the XX itself might
    not be standard.
 
