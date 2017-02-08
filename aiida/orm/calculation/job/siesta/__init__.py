@@ -189,15 +189,10 @@ class SiestaCalculation(JobCalculation):
         kpoints = inputdict.pop(self.get_linkname('kpoints'),None)
         if kpoints is None:
             # Do nothing. Assume it is a gamma-point calculation
-            # We might want to check this in the settings dictionary,
-            # but only that it does not conflict
-            gamma_only = settings_dict.pop("GAMMA_ONLY",False)
-            if not gamma_only:
-                raise InputValidationError("No kpoints node, but "
-                                           "gamma_only is False in settings")
+            pass
         else:
             if not isinstance(kpoints,  KpointsData):
-                raise InputValidationError("kpoints if specified, must be of "
+                raise InputValidationError("kpoints, if specified, must be of "
                                            "type KpointsData")
 
         
@@ -361,61 +356,13 @@ class SiestaCalculation(JobCalculation):
             # NOTE that there is not yet support for the 'kgrid-cutoff'
             # option in Siesta.
             #
-            try:
-                mesh,offset = kpoints.get_kpoints_mesh()
-                has_mesh = True
-            except AttributeError:
-
                 try:
-                    kpoints_list = kpoints.get_kpoints()
-                    num_kpoints = len(kpoints_list)
-                    has_mesh=False
-                    if num_kpoints == 0:
-                        raise InputValidationError("At least one k point must "
-                        "be provided for non-gamma calculations")
-                except AttributeError:                
-                    raise InputValidationError("No valid kpoints have been "
-                    "found")
-
-                try:
-                    _,weights = kpoints.get_kpoints(also_weights=True)
+                    mesh,offset = kpoints.get_kpoints_mesh()
+                    has_mesh = True
                 except AttributeError:
-                    weights = [1.] * num_kpoints
-
-            # Note this variable in the settings dictionary. It defaults
-            # to False if not found.
-            # If False, we have an 'automatic' type case.
-
-            # Why use 'pop' ?
-            gamma_only = settings_dict.pop("GAMMA_ONLY",False)
-            
-            if gamma_only:
-                if has_mesh:
-                    if tuple(mesh) != (1,1,1) or tuple(offset) != (0.,0.,0.):
-                        raise InputValidationError(
-                            "If a gamma_only calculation is requested, the "
-                            "kpoint mesh must be (1,1,1),offset=(0.,0.,0.)")
-                    
-                else:
-                    if ( len(kpoints_list) != 1 or 
-                         tuple(kpoints_list[0]) != tuple(0.,0.,0.) ):
-                        raise InputValidationError(
-                            "If a gamma_only calculation is requested, the "
-                            "kpoints coordinates must only be (0.,0.,0.)")
-
-                kpoints_type = "gamma"
-
-            else:
-                kpoints_type = "automatic"
-
-            # NOTE that if we specify a list of k-points, Siesta
-            # cannot currently accept it.
-            # This should be caught earlier
-            
-
-    
-            if kpoints_type == "automatic":
-                
+                    raise InputValidationError("K-point sampling for scf "
+                        "must be given in mesh form")
+        
                 kpoints_card_list = ["%block kgrid_monkhorst_pack\n"]
                 #
                 # This will fail if has_mesh is False (for the case of a list),
@@ -440,11 +387,6 @@ class SiestaCalculation(JobCalculation):
                 kpoints_card += "%endblock kgrid_monkhorst_pack\n"
                 del kpoints_card_list
             
-            elif kpoints_type == "gamma":
-
-                # nothing to be written in this case
-                pass
-
         # ================ Namelists and cards ===================
         
         input_filename = tempfolder.get_abs_path(self._INPUT_FILE_NAME)
@@ -470,10 +412,9 @@ class SiestaCalculation(JobCalculation):
             infile.write(atomic_species_card)
             infile.write(cell_parameters_card)
             infile.write(atomic_positions_card)
-            infile.write("#\n# -- K-points Info follows\n#\n")
             if kpoints is not None:
-                if kpoints_type == "automatic":
-                    infile.write(kpoints_card)
+                infile.write("#\n# -- K-points Info follows\n#\n")
+                infile.write(kpoints_card)
 
         # operations for restart
         # copy remote output dir, if specified

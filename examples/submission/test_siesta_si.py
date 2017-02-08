@@ -119,7 +119,7 @@ kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 
 # to retrieve the bands
 # (the object settings is optional)
-settings_dict={'gamma_only': False}
+settings_dict={'test_key': 'test_value'}
 settings = ParameterData(dict=settings_dict)
 
 ## For remote codes, it is not necessary to manually set the computer,
