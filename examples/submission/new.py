@@ -37,26 +37,13 @@ try:
 except IndexError:
     codename = 'Siesta-4.0@rinaldo'
 
+
+queue = None
+settings = None
+#####
+
 code = test_and_get_code(codename, expected_code_type='siesta')
-#
-#  Set up calculation object first
-#
-calc = code.new_calc()
-calc.label = "Test Siesta. Benzene molecule"
-calc.description = "Test calculation with the Siesta code. Benzene molecule"
 
-#
-#----Settings first  -----------------------------
-#
-settings_dict={'also_bands': False, 
-               'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
-settings = ParameterData(dict=settings_dict)
-calc.use_settings(settings)
-#---------------------------------------------------
-
-#
-# Structure -----------------------------------------
-#
 alat = 15. # angstrom
 cell = [[alat, 0., 0.,],
         [0., alat, 0.,],
@@ -81,75 +68,80 @@ s.append_atom(position=(0.000,0.000,4.442),symbols=['C'])
 s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 
 elements = list(s.get_symbols_set())
-calc.use_structure(s)
-#-------------------------------------------------------------
 
-#
-# Parameters ---------------------------------------------------
-#
-# Note the use of '.' in some entries. This will be fixed below.
-# Note also that some entries have ':' as separator. This is not
-# allowed in Siesta, and will be fixed by the plugin itself. The
-# latter case is an unfortunate historical choice. It should not
-# be used in modern scripts.
-#
-params_dict= {
-'xc.functional': 'LDA',
-'xc.authors': 'CA',
-'spin:polarized': True,
+parameters = ParameterData(dict={
+'xc:functional': 'LDA',
+'xc:authors': 'CA',
+'spinpolarized': True,
 'noncollinearspin': False,
-'mesh-cutoff': '200.000 Ry',
+'meshcutoff': '200.000 Ry',
 'maxscfiterations': 1000,
-'dm-numberpulay': 5,
-'dm-mixingweight': 0.050,
-'dm-tolerance': 1.e-4,
+'dm:numberpulay': 5,
+'dm:mixingweight': 0.050,
+'dm:tolerance': 1.e-4,
 'dm-mixscf1': True,
-'negl-nonoverlap-int': False,
-'solution-method': 'diagon',
-'electronic-temperature': '100.000 K',
+'neglnonoverlapint': False,
+'solutionmethod': 'diagon',
+'electronictemperature': '100.000 K',
 'md-typeofrun': 'cg',
-'md-numcgsteps': 2,
+'md-numcgsteps': 3,
 'md-maxcgdispl': '0.200 bohr',
 'md-maxforcetol': '0.050 eV/Ang',
 'writeforces': True,
 'writecoorstep': True,
 'xml-write': True,
-'write-mulliken-pop': 1,
-'%block example-block': """
+'writemullikenpop': 1,
+'%block pepe': """
 first line
 second line    """,
-}
+'%block electric-field': """
+0.3 0.4 0.5 eV/Ang""",
+})
+
 #
-# Sanitize, as '.' is not kosher for the database handlers
+#  This entry is handled in a special way, interpreted as
+#  a pao-basis-sizes block
 #
-params_dict = { k.replace('.','-') :v for k,v in params_dict.iteritems() }
-#
-parameters = ParameterData(dict=params_dict)
-calc.use_parameters(parameters)
-#
-#----------------------------------------------------------
-#
-# Basis Set Info ------------------------------------------
-# The basis dictionary follows the 'parameters' convention
-#
-basis_dict = {
+basis = ParameterData(dict={
 'pao-basistype': 'split',
 'pao-splitnorm': 0.150,
 'pao-energyshift': '0.020 Ry',
 '%block pao-basis-sizes' :"""
-C    SZP
-Cred SZ
-H    SZP  """,
-}
-#
-basis_dict = { k.replace('.','-') :v for k,v in  basis_dict.iteritems() }
-#
-basis = ParameterData(dict=basis_dict)
+                C    SZP
+                Cred SZ
+                H    SZP  """,
+})
+
+kpoints = KpointsData()
+
+# method mesh
+kpoints_mesh = 1
+kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
+
+# to retrieve the bands
+# (the object settings is optional)
+#settings_dict={'also_bands': True}
+#settings = ParameterData(dict=settings_dict)
+
+## For remote codes, it is not necessary to manually set the computer,
+## since it is set automatically by new_calc
+#computer = code.get_remote_computer()
+#calc = code.new_calc(computer=computer)
+
+calc = code.new_calc()
+calc.label = "Test Siesta. Benzene molecule"
+calc.description = "Test calculation with the Siesta code. Benzene molecule"
+calc.set_max_wallclock_seconds(30*60) # 30 min
+
+calc.set_resources({"num_machines": 1})
+
+if queue is not None:
+    calc.set_queue_name(queue)
+
+calc.use_structure(s)
+calc.use_parameters(parameters)
 calc.use_basis(basis)
-#--------------------------------------------------------------
 
-
-# Pseudopotentials ----------------------------------------------
 #
 # This exemplifies the handling of pseudos for different species
 # Those sharing the same pseudo should be indicated.
@@ -169,21 +161,11 @@ for fname, kinds, in raw_pseudos:
         
     # Attach pseudo node to the calculation
     calc.use_pseudo(pseudo,kind=kinds)
-#-------------------------------------------------------------------
 
-## For remote codes, it is not necessary to manually set the computer,
-## since it is set automatically by new_calc
-#computer = code.get_remote_computer()
-#calc = code.new_calc(computer=computer)
+calc.use_kpoints(kpoints)
 
-calc.set_max_wallclock_seconds(30*60) # 30 min
-
-calc.set_resources({"num_machines": 1})
-#------------------
-queue = None
-# calc.set_queue_name(queue)
-#------------------
-
+if settings is not None:
+    calc.use_settings(settings)
 #from aiida.orm.data.remote import RemoteData
 #calc.set_outdir(remotedata)
 

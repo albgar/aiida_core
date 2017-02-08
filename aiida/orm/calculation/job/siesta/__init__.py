@@ -137,7 +137,21 @@ class SiestaCalculation(JobCalculation):
         
         local_copy_list = []
         remote_copy_list = []
-        
+
+        # Process the settings dictionary first
+        # Settings can be undefined, and defaults to an empty dictionary
+        settings = inputdict.pop(self.get_linkname('settings'),None)
+        if settings is None:
+            settings_dict = {}
+        else:
+            if not isinstance(settings,  ParameterData):
+                raise InputValidationError("settings, if specified, must be of "
+                                           "type ParameterData")
+            # Settings converted to uppercase
+            # WHY??
+            settings_dict = _uppercase_dict(settings.get_dict(),
+                                            dict_name='settings')
+
         try:
             parameters = inputdict.pop(self.get_linkname('parameters'))
         except KeyError:
@@ -165,25 +179,22 @@ class SiestaCalculation(JobCalculation):
         if not isinstance(structure,  StructureData):
             raise InputValidationError("structure is not of type StructureData")
 
-        try:
-            kpoints = inputdict.pop(self.get_linkname('kpoints'))
-        except KeyError:
-            raise InputValidationError("No kpoints specified for this "
-                "calculation")
-        if not isinstance(kpoints,  KpointsData):
-            raise InputValidationError("kpoints is not of type KpointsData")
-
-        # Settings can be undefined, and defaults to an empty dictionary
-        settings = inputdict.pop(self.get_linkname('settings'),None)
-        if settings is None:
-            settings_dict = {}
+        # k-points
+        # It is now possible to elide the kpoints node.
+        #
+        # Note also that a *different* set of k-points is needed if a band
+        # calculation is carried out. This should be specified somehow in
+        # the 'settings' dictionary (see QE example...)
+        
+        kpoints = inputdict.pop(self.get_linkname('kpoints'),None)
+        if kpoints is None:
+            # Do nothing. Assume it is a gamma-point calculation
+            pass
         else:
-            if not isinstance(settings,  ParameterData):
-                raise InputValidationError("settings, if specified, must be of "
-                                           "type ParameterData")
-            # Settings converted to uppercase
-            settings_dict = _uppercase_dict(settings.get_dict(),
-                                            dict_name='settings')
+            if not isinstance(kpoints,  KpointsData):
+                raise InputValidationError("kpoints, if specified, must be of "
+                                           "type KpointsData")
+
         
         pseudos = {}
         # I create here a dictionary that associates each kind name to a pseudo
@@ -339,52 +350,24 @@ class SiestaCalculation(JobCalculation):
 
 
         # --------------- K-POINTS ----------------
-        if True:
-            try:
-                mesh,offset = kpoints.get_kpoints_mesh()
-                has_mesh = True
-            except AttributeError:
-
+        if kpoints is not None:
+            #
+            # Get a mesh, or a list of kpoints with weights
+            # NOTE that there is not yet support for the 'kgrid-cutoff'
+            # option in Siesta.
+            #
                 try:
-                    kpoints_list = kpoints.get_kpoints()
-                    num_kpoints = len(kpoints_list)
-                    has_mesh=False
-                    if num_kpoints == 0:
-                        raise InputValidationError("At least one k point must "
-                        "be provided for non-gamma calculations")
-                except AttributeError:                
-                    raise InputValidationError("No valid kpoints have been "
-                    "found")
-
-                try:
-                    _,weights = kpoints.get_kpoints(also_weights=True)
+                    mesh,offset = kpoints.get_kpoints_mesh()
+                    has_mesh = True
                 except AttributeError:
-                    weights = [1.] * num_kpoints
-            
-            gamma_only = settings_dict.pop("GAMMA_ONLY",False)
-            
-            if gamma_only:
-                if has_mesh:
-                    if tuple(mesh) != (1,1,1) or tuple(offset) != (0.,0.,0.):
-                        raise InputValidationError(
-                            "If a gamma_only calculation is requested, the "
-                            "kpoint mesh must be (1,1,1),offset=(0.,0.,0.)")
-                    
-                else:
-                    if ( len(kpoints_list) != 1 or 
-                         tuple(kpoints_list[0]) != tuple(0.,0.,0.) ):
-                        raise InputValidationError(
-                            "If a gamma_only calculation is requested, the "
-                            "kpoints coordinates must only be (0.,0.,0.)")
-
-                kpoints_type = "gamma"
-
-            else:
-                kpoints_type = "automatic"
-
-            kpoints_card_list = ["%block kgrid_monkhorst_pack\n"]
-    
-            if kpoints_type == "automatic":
+                    raise InputValidationError("K-point sampling for scf "
+                        "must be given in mesh form")
+        
+                kpoints_card_list = ["%block kgrid_monkhorst_pack\n"]
+                #
+                # This will fail if has_mesh is False (for the case of a list),
+                # since in that case 'offset' is undefined.
+                #
                 if any( [ (i!=0. and i !=0.5) for i in offset] ):
                     raise InputValidationError("offset list must only be made "
                                                "of 0 or 0.5 floats")
@@ -400,14 +383,10 @@ class SiestaCalculation(JobCalculation):
                 "{0:6} {1:6} {2:6} {3:18.10f}\n".format(
                     0, 0, mesh[2], the_offset[2]))
                 
-            elif kpoints_type == "gamma":
-                # nothing to be written in this case
-                pass
-                
-            kpoints_card = "".join(kpoints_card_list)
-            kpoints_card += "%endblock kgrid_monkhorst_pack\n"
-            del kpoints_card_list
-
+                kpoints_card = "".join(kpoints_card_list)
+                kpoints_card += "%endblock kgrid_monkhorst_pack\n"
+                del kpoints_card_list
+            
         # ================ Namelists and cards ===================
         
         input_filename = tempfolder.get_abs_path(self._INPUT_FILE_NAME)
@@ -433,8 +412,9 @@ class SiestaCalculation(JobCalculation):
             infile.write(atomic_species_card)
             infile.write(cell_parameters_card)
             infile.write(atomic_positions_card)
-            infile.write("#\n# -- K-points Info follows\n#\n")
-            infile.write(kpoints_card)
+            if kpoints is not None:
+                infile.write("#\n# -- K-points Info follows\n#\n")
+                infile.write(kpoints_card)
 
         # operations for restart
         # copy remote output dir, if specified
@@ -451,12 +431,17 @@ class SiestaCalculation(JobCalculation):
         calcinfo.uuid = self.uuid
         #
         # Empty command line by default
+        # Why use 'pop' ?
         cmdline_params = settings_dict.pop('CMDLINE', [])
+
+        # Comment this paragraph better, if applicable to Siesta
+        #
         #we commented calcinfo.stin_name and added it here in cmdline_params
         #in this way the mpirun ... pw.x ... < aiida.in 
         #is replaced by mpirun ... pw.x ... -in aiida.in
         # in the scheduler, _get_run_line, if cmdline_params is empty, it 
         # simply uses < calcinfo.stin_name
+        #
         if cmdline_params: 
             calcinfo.cmdline_params = list(cmdline_params)
         calcinfo.local_copy_list = local_copy_list
@@ -485,9 +470,13 @@ class SiestaCalculation(JobCalculation):
             [])
         calcinfo.retrieve_list += settings_retrieve_list
         calcinfo.retrieve_list += [ self._OUTPUT_FILE_NAME ]
-        
-        if settings_dict:
-            raise NotImplementedError('no settings implementation')
+
+        #
+        # This is probably unnecessary... we have been using the functionality
+        # all along...
+        #
+        #if settings_dict:
+        #   raise NotImplementedError('no settings implementation')
         
         return calcinfo
 
@@ -516,6 +505,10 @@ class SiestaCalculation(JobCalculation):
         """
         # If it is a list of strings, and not a single string: join them
         # by underscore
+        #
+        # It might be better to use another character instead of '_'. As it
+        # is now, it conflicts with species names of the form Symbol_extra.
+
         if isinstance(kind, (tuple, list)):
             suffix_string = "_".join(kind) 
         elif isinstance(kind, basestring):

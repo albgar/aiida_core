@@ -47,80 +47,17 @@ settings = None
 code = test_and_get_code(codename, expected_code_type='siesta')
 
 alat = 5.430 # angstrom
-cell = [[2*alat, 0., 0.,],
-        [0., 2*alat, 0.,],
-        [0., 0., 2*alat,],
+cell = [[0.5*alat, 0.5*alat, 0.,],
+        [0., 0.5*alat, 0.5*alat,],
+        [0.5*alat, 0., 0.5*alat,],
        ]
 
-# SiH coordinates
+# Si
 # This was originally given in the "ScaledCartesian" format
 #
 s = StructureData(cell=cell)
 s.append_atom(position=(0.000*alat,0.000*alat,0.000*alat),symbols=['Si'])
 s.append_atom(position=(0.250*alat,0.250*alat,0.250*alat),symbols=['Si'])
-s.append_atom(position=(0.000*alat,0.500*alat,0.500*alat),symbols=['Si'])
-s.append_atom(position=(0.250*alat,0.750*alat,0.750*alat),symbols=['Si'])
-s.append_atom(position=(0.500*alat,0.000*alat,0.500*alat),symbols=['Si'])
-s.append_atom(position=(0.750*alat,0.250*alat,0.750*alat),symbols=['Si'])
-s.append_atom(position=(0.500*alat,0.500*alat,0.000*alat),symbols=['Si'])
-s.append_atom(position=(0.750*alat,0.750*alat,0.250*alat),symbols=['Si'])
-s.append_atom(position=(1.000*alat,0.000*alat,0.000*alat),symbols=['Si'])
-s.append_atom(position=(1.250*alat,0.250*alat,0.250*alat),symbols=['Si'])
-s.append_atom(position=(1.000*alat,0.500*alat,0.500*alat),symbols=['Si'])
-s.append_atom(position=(1.250*alat,0.750*alat,0.750*alat),symbols=['Si'])
-s.append_atom(position=(1.500*alat,0.000*alat,0.500*alat),symbols=['Si'])
-s.append_atom(position=(1.750*alat,0.250*alat,0.750*alat),symbols=['Si'])
-s.append_atom(position=(1.500*alat,0.500*alat,0.000*alat),symbols=['Si'])
-s.append_atom(position=(1.750*alat,0.750*alat,0.250*alat),symbols=['Si'])
-s.append_atom(position=(0.000*alat,1.000*alat,0.000*alat),symbols=['Si'])
-s.append_atom(position=(0.250*alat,1.250*alat,0.250*alat),symbols=['Si'])
-s.append_atom(position=(0.000*alat,1.500*alat,0.500*alat),symbols=['Si'])
-s.append_atom(position=(0.250*alat,1.750*alat,0.750*alat),symbols=['Si'])
-s.append_atom(position=(0.500*alat,1.000*alat,0.500*alat),symbols=['Si'])
-s.append_atom(position=(0.750*alat,1.250*alat,0.750*alat),symbols=['Si'])
-s.append_atom(position=(0.500*alat,1.500*alat,0.000*alat),symbols=['Si'])
-s.append_atom(position=(0.750*alat,1.750*alat,0.250*alat),symbols=['Si'])
-s.append_atom(position=(0.000*alat,0.000*alat,1.000*alat),symbols=['Si'])
-s.append_atom(position=(0.250*alat,0.250*alat,1.250*alat),symbols=['Si'])
-s.append_atom(position=(0.000*alat,0.500*alat,1.500*alat),symbols=['Si'])
-s.append_atom(position=(0.250*alat,0.750*alat,1.750*alat),symbols=['Si'])
-s.append_atom(position=(0.500*alat,0.000*alat,1.500*alat),symbols=['Si'])
-s.append_atom(position=(0.750*alat,0.250*alat,1.750*alat),symbols=['Si'])
-s.append_atom(position=(0.500*alat,0.500*alat,1.000*alat),symbols=['Si'])
-s.append_atom(position=(0.750*alat,0.750*alat,1.250*alat),symbols=['Si'])
-s.append_atom(position=(1.000*alat,1.000*alat,0.000*alat),symbols=['Si'])
-s.append_atom(position=(1.250*alat,1.250*alat,0.250*alat),symbols=['Si'])
-s.append_atom(position=(1.000*alat,1.500*alat,0.500*alat),symbols=['Si'])
-s.append_atom(position=(1.250*alat,1.750*alat,0.750*alat),symbols=['Si'])
-s.append_atom(position=(1.500*alat,1.000*alat,0.500*alat),symbols=['Si'])
-s.append_atom(position=(1.750*alat,1.250*alat,0.750*alat),symbols=['Si'])
-s.append_atom(position=(1.500*alat,1.500*alat,0.000*alat),symbols=['Si'])
-s.append_atom(position=(1.750*alat,1.750*alat,0.250*alat),symbols=['Si'])
-s.append_atom(position=(1.000*alat,0.000*alat,1.000*alat),symbols=['Si'])
-s.append_atom(position=(1.250*alat,0.250*alat,1.250*alat),symbols=['Si'])
-s.append_atom(position=(1.000*alat,0.500*alat,1.500*alat),symbols=['Si'])
-s.append_atom(position=(1.250*alat,0.750*alat,1.750*alat),symbols=['Si'])
-s.append_atom(position=(1.500*alat,0.000*alat,1.500*alat),symbols=['Si'])
-s.append_atom(position=(1.750*alat,0.250*alat,1.750*alat),symbols=['Si'])
-s.append_atom(position=(1.500*alat,0.500*alat,1.000*alat),symbols=['Si'])
-s.append_atom(position=(1.750*alat,0.750*alat,1.250*alat),symbols=['Si'])
-s.append_atom(position=(0.000*alat,1.000*alat,1.000*alat),symbols=['Si'])
-s.append_atom(position=(0.250*alat,1.250*alat,1.250*alat),symbols=['Si'])
-s.append_atom(position=(0.000*alat,1.500*alat,1.500*alat),symbols=['Si'])
-s.append_atom(position=(0.250*alat,1.750*alat,1.750*alat),symbols=['Si'])
-s.append_atom(position=(0.500*alat,1.000*alat,1.500*alat),symbols=['Si'])
-s.append_atom(position=(0.750*alat,1.250*alat,1.750*alat),symbols=['Si'])
-s.append_atom(position=(0.500*alat,1.500*alat,1.000*alat),symbols=['Si'])
-s.append_atom(position=(0.750*alat,1.750*alat,1.250*alat),symbols=['Si'])
-s.append_atom(position=(1.000*alat,1.000*alat,1.000*alat),symbols=['Si'])
-s.append_atom(position=(1.250*alat,1.250*alat,1.250*alat),symbols=['Si'])
-s.append_atom(position=(1.000*alat,1.500*alat,1.500*alat),symbols=['Si'])
-s.append_atom(position=(1.250*alat,1.750*alat,1.750*alat),symbols=['Si'])
-s.append_atom(position=(1.500*alat,1.000*alat,1.500*alat),symbols=['Si'])
-s.append_atom(position=(1.750*alat,1.250*alat,1.750*alat),symbols=['Si'])
-s.append_atom(position=(1.500*alat,1.500*alat,1.000*alat),symbols=['Si'])
-s.append_atom(position=(1.750*alat,1.750*alat,1.250*alat),symbols=['Si'])
-s.append_atom(position=(1.125*alat,1.125*alat,1.125*alat),symbols=['H'])
 
 
 elements = list(s.get_symbols_set())
@@ -171,16 +108,16 @@ parameters = ParameterData(dict={
 basis = ParameterData(dict={
 'pao-energy-shift': '300 meV',
 '%block pao-basis-sizes': """
-Si SZP
-H  DZP                    """,
+Si DZP                    """,
 })
 
 kpoints = KpointsData()
 
 # method mesh
-kpoints_mesh = 1
+kpoints_mesh = 4
 kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 
+# to retrieve the bands
 # (the object settings is optional)
 settings_dict={'test_key': 'test_value'}
 settings = ParameterData(dict=settings_dict)
@@ -191,8 +128,8 @@ settings = ParameterData(dict=settings_dict)
 #calc = code.new_calc(computer=computer)
 
 calc = code.new_calc()
-calc.label = "SiH_spin"
-calc.description = "Test calculation with the Siesta code. SiH spin"
+calc.label = "Si bulk"
+calc.description = "Test calculation with the Siesta code. Si bulk"
 calc.set_max_wallclock_seconds(30*60) # 30 min
 
 #------------ clarify this
@@ -222,8 +159,7 @@ if auto_pseudos:
                "pseudo family, or set auto_pseudos to False.")
         raise
 else:
-    raw_pseudos = [("Si.psf", 'Si'),
-                   ("H.psf", 'H')]
+    raw_pseudos = [("Si.psf", 'Si')]
 
     for fname, kinds, in raw_pseudos:
       absname = os.path.realpath(os.path.join(os.path.dirname(__file__),
