@@ -20,7 +20,9 @@ pytz==2014.10
 ## For the daemon
 django-celery == 3.1.16
 celery==3.1.17
-kombu==3.0.24
+
+# For python > 2.7.11, we need 3.0.30 for kombu, instead of 3.0.24
+kombu==3.0.30     
 billiard==3.3.0.19
 amqp==1.4.6
 anyjson==0.3.3
@@ -60,13 +62,13 @@ python-mimeparse==0.1.4
 ##
 ## Some optional requirements:
 ## For the documentation
-#sphinx==1.2.3
-#pygments==2.0.2
-#docutils==0.12
-#jinja2==2.7.3
-#markupsafe==0.23
+sphinx==1.2.3
+pygments==2.0.2
+docutils==0.12
+jinja2==2.7.3
+markupsafe==0.23
 ## For a nicer documentation theme (from read the docs):
-#sphinx_rtd_theme
+sphinx_rtd_theme
 
 ## ICSD tools
 #PyMySQL>=0.6.1
