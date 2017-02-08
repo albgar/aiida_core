@@ -6,6 +6,9 @@ Siesta plugin issues
 
 -- I do not know how to deal with the "restart" capability.
 
+-- K-point sampling for the scf cycle follows Siesta convention: the
+   absence of a 'kpoints' node implies gamma-point sampling.
+   
 -- Band structures are fundamentally different from BZ
    sampling. K-point specification is different. Not implemented yet.
 
