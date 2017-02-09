@@ -162,14 +162,14 @@ bandskpoints = KpointsData()
 
 
 ##..........................Only points, no labels............................##
-#kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
-#bandskpoints.set_cell(s.cell, s.pbc)
-#bandskpoints.set_kpoints(kpp)
+kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
+bandskpoints.set_cell(s.cell, s.pbc)
+bandskpoints.set_kpoints(kpp)
 
 ##..kp path automatically generated from structure (all high-simmetry point)..##
 ##.....labels automatically included, 0.05 is the distance between kpoints....##
-bandskpoints.set_cell(s.cell, s.pbc)
-bandskpoints.set_kpoints_path(kpoint_distance = 0.05)
+#bandskpoints.set_cell(s.cell, s.pbc)
+#bandskpoints.set_kpoints_path(kpoint_distance = 0.05)
 
 calc.use_kpoints(kts)
 calc.use_bandskpoints(bandskpoints)
