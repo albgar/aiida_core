@@ -79,8 +79,15 @@ class DirectScheduler(aiida.scheduler.Scheduler):
         if user and not jobs:
             if user != '$USER':
                 user = escape_for_bash(user)
-            command += ' -U {} -u {} h'.format(user, user)
+            # AG: In my Mac, the '-u' option needs numeric ids
+            # This is just a quick hack
+            import sys
+            if sys.platform == 'darwin':
+                command += ' -U {} -U {} '.format(user, user)
+            else:
+                command += ' -U {} -u {} '.format(user, user)
 
+        print "Command:", command
         return command
 
     def _get_submit_script_header(self, job_tmpl):

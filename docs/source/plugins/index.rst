@@ -15,3 +15,4 @@ Available plugins
    ase/index
    wannier90/index
    nwchem/index
+   siesta/index

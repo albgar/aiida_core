@@ -1,0 +1,21 @@
+Siesta plugin issues
+
+-- The CML file stores forces at each geometry iteration, but not the
+   stress. Trajectories (not implemented yet) will then contain only
+   positions and forces.
+
+-- I do not know how to deal with the "restart" capability.
+
+-- K-point sampling for the scf cycle follows Siesta convention: the
+   absence of a 'kpoints' node implies gamma-point sampling.
+   
+-- Band structures are fundamentally different from BZ
+   sampling. K-point specification is different. Not implemented yet.
+
+-- Units are now given in XX_units entries, but the XX itself might
+   not be standard.
+
+-- Basis-set info is now dealt with as a special set of parameters.
+
+
+
