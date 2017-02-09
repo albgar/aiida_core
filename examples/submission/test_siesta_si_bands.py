@@ -180,22 +180,24 @@ calc.use_kpoints(kpoints)
 bandskpoints = KpointsData()
 
 ##..Set a path, label needed, 40 is number of kp between W-L and between L-G..##
-kpp = [('W',  (0.500,  0.250, 0.750), 'L', (0.500,  0.500, 0.500), 40),
-        ('L', (0.500,  0.500, 0.500), 'G', (0., 0., 0.), 40)]
-bandskpoints.set_cell(s.cell, s.pbc)
-bandskpoints.set_kpoints(kpp)
+#kpp = [('W',  (0.500,  0.250, 0.750), 'L', (0.500,  0.500, 0.500), 40),
+#        ('L', (0.500,  0.500, 0.500), 'G', (0., 0., 0.), 40)]
+#bandskpoints.set_cell(s.cell, s.pbc)
+#bandskpoints.set_kpoints(kpp)
 
 
 ##..........................Only points, no labels............................##
-#kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
-#bandskpoints.set_cell(s.cell, s.pbc)
-#bandskpoints.set_kpoints(kpp)
+kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
+bandskpoints.set_cell(s.cell, s.pbc)
+bandskpoints.set_kpoints(kpp)
 
 ##..kp path automatically generated from structure (all high-simmetry point)..##
 ##.....labels automatically included, 0.05 is the distance between kpoints....##
 # Not available in 0.5.0...
 #bandskpoints.set_cell(s.cell, s.pbc)
 #bandskpoints.set_kpoints_path(kpoint_distance = 0.05)
+
+calc.use_bandskpoints(bandskpoints)
 
 if settings is not None:
     calc.use_settings(settings)
