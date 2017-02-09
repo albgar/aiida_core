@@ -160,7 +160,47 @@ def get_final_forces_and_stress(xmldoc):
           
  return forces, stress
 
-                        
+
+#The parsing is different whether I have Bands or Points.
+#I recognise this two situations looking at bandskpoints.label
+#(like I did in the plugin)
+def get_bands(self, bands_path):
+    import numpy as np
+    from aiida.common.exceptions import InputValidationError
+    from aiida.common.exceptions import ValidationError
+    tottx = []
+    f=open(bands_path)
+    tottx=f.read().split()
+    ef = float(tottx[0])
+    if self._calc.inp.bandskpoints.labels==None:
+        minfreq,maxfreq = float(tottx[1]), float(tottx[2])
+        nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(tottx[5])
+	spinup=np.zeros((nkpoints,nbands))
+	spindown=np.zeros((nkpoints,nbands))
+        for i in range(nkpoints):
+            for j in range(nbands):
+                spinup[i,j]=(float(tottx[i*(nbands*2+3)+6+j+3]))
+                if (nspins==2):
+                    spindown[i,j]=(float(tottx[i*(nbands*2+3)+6+j+3+nbands]))   
+    else:
+        mink,maxk = float(tottx[1]), float(tottx[2])
+        minfreq,maxfreq = float(tottx[3]), float(tottx[4])
+        nbands, nspins, nkpoints = int(tottx[5]), int(tottx[6]), int(tottx[7])
+        spinup=np.zeros((nkpoints,nbands))
+        spindown=np.zeros((nkpoints,nbands))
+        for i in range(nkpoints):
+            for j in range(nbands):
+                spinup[i,j]=(float(tottx[i*(nbands*2+1)+8+j+1]))
+       	        if (nspins==2):
+            	    spindown[i,j]=(float(tottx[i*(nbands*2+1)+8+j+1+nbands]))
+    if (nspins==2):
+	bands = (spinup, spindown)
+    elif (nspins==1):
+	bands = spinup
+    else:
+	raise NotImplementedError('if nspins=4 could be a non collinear calculation: not implemented yet')
+    return bands                     
+
 #----------------------------------------------------------------------
 #----------------------------------------------------------------------
 class SiestaParser(Parser):
@@ -180,7 +220,7 @@ class SiestaParser(Parser):
         if not isinstance(calc,SiestaCalculation):
             raise ParsingError("Input calc must be a SiestaCalculation")
 
-    def _get_output_nodes(self, output_path, error_path, xml_path):
+    def _get_output_nodes(self, output_path, error_path, xml_path, bands_path):
         """
         Extracts output nodes from the standard output and standard error
         files. (And XML file)
@@ -188,7 +228,7 @@ class SiestaParser(Parser):
         from aiida.orm.data.array.trajectory import TrajectoryData
         import re
 
-        parser_version = '0.5'
+        parser_version = '0.5.1-bands'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser v{}'.format(parser_version)
         parser_info['parser_items'] = ['Metadata','Scalars','End Structure']
@@ -246,7 +286,16 @@ class SiestaParser(Parser):
         arraydata.set_array('forces', numpy.array(forces))
         arraydata.set_array('stress', numpy.array(stress))
         result_list.append((self.get_linkname_outarray(),arraydata))
-        
+
+        # Parse band-structure information if available
+        if bands_path is not None:
+	    bands = get_bands(self,bands_path)
+	    from aiida.orm.data.array.bands import BandsData
+	    arraybands = BandsData()
+            arraybands.set_kpoints(self._calc.inp.bandskpoints.get_kpoints(cartesian=True))
+	    arraybands.set_bands(bands,units="eV")
+	    result_list.append((self.get_linkname_bandsarray(),arraybands))
+	
         return result_list
 
     def parse_with_retrieved(self,retrieved):
@@ -261,8 +310,9 @@ class SiestaParser(Parser):
         output_path = None
         error_path  = None
         xml_path  = None
+        bands_path = None
         try:
-            output_path, error_path, xml_path = self._fetch_output_files(retrieved)
+            output_path, error_path, xml_path, bands_path = self._fetch_output_files(retrieved)
         except InvalidOperation:
             raise
         except IOError as e:
@@ -273,7 +323,7 @@ class SiestaParser(Parser):
             self.logger.error("No output files found")
             return False, ()
 
-        return True, self._get_output_nodes(output_path, error_path, xml_path)
+        return True, self._get_output_nodes(output_path, error_path, xml_path, bands_path)
 
     def _fetch_output_files(self, retrieved):
         """
@@ -304,6 +354,7 @@ class SiestaParser(Parser):
         output_path = None
         error_path  = None
         xml_path  = None
+	bands_path = None
 
         if self._calc._DEFAULT_OUTPUT_FILE in list_of_files:
             output_path = os.path.join( out_folder.get_abs_path('.'),
@@ -314,8 +365,11 @@ class SiestaParser(Parser):
         if self._calc._DEFAULT_ERROR_FILE in list_of_files:
             error_path  = os.path.join( out_folder.get_abs_path('.'),
                                         self._calc._DEFAULT_ERROR_FILE )
+        if self._calc._DEFAULT_BANDS_FILE in list_of_files:
+            bands_path  = os.path.join( out_folder.get_abs_path('.'),
+                                        self._calc._DEFAULT_BANDS_FILE )
 
-        return output_path, error_path, xml_path
+        return output_path, error_path, xml_path, bands_path
 
     def get_linkname_outstructure(self):
         """
@@ -332,5 +386,13 @@ class SiestaParser(Parser):
         pending the implementation of trajectory data.
         """
         return 'output_array'
+
+    def get_linkname_bandsarray(self):
+        """                                                                     
+        Returns the name of the link to the bands_array                        
+        In Siesta, Node exists to hold the bands,
+        pending the implementation of trajectory data.
+        """
+        return 'bands_array'
                        
    
