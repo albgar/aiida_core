@@ -26,7 +26,7 @@ class SiestaCalculation(JobCalculation):
     """
     Add docs
     """
-    _siesta_plugin_version = '0.5'
+    _siesta_plugin_version = '0.5.1-bands'
     
     def _init_internal_params(self):
         super(SiestaCalculation, self)._init_internal_params()
@@ -53,6 +53,7 @@ class SiestaCalculation(JobCalculation):
         self._DEFAULT_OUTPUT_FILE = 'aiida.out'
         self._DEFAULT_XML_FILE = 'aiida.xml'
         self._DEFAULT_ERROR_FILE = 'aiida.err'
+	self._DEFAULT_BANDS_FILE = 'aiida.bands'
 
         self._PSEUDO_SUBFOLDER = './'
         self._OUTPUT_SUBFOLDER = './'
@@ -60,6 +61,7 @@ class SiestaCalculation(JobCalculation):
         self._INPUT_FILE_NAME = 'aiida.fdf'
         self._OUTPUT_FILE_NAME = 'aiida.out'
         self._XML_FILE_NAME = 'aiida.xml'
+	self._BANDS_FILE_NAME = 'aiida.bands'
 
     @classproperty
     def _use_methods(cls):
@@ -119,6 +121,12 @@ class SiestaCalculation(JobCalculation):
                           "list of strings if more than one kind uses the "
                           "same pseudo"),
             }
+	retdict['bandskpoints'] = {
+               'valid_types': KpointsData,
+               'additional_parameter': None,
+               'linkname': 'bandskpoints',
+               'docstring': "Use the node defining the kpoint sampling to use for bands calculation",
+               }
         return retdict
 
     def _prepare_for_submission(self,tempfolder,
@@ -194,6 +202,16 @@ class SiestaCalculation(JobCalculation):
             if not isinstance(kpoints,  KpointsData):
                 raise InputValidationError("kpoints, if specified, must be of "
                                            "type KpointsData")
+
+        bandskpoints = inputdict.pop(self.get_linkname('bandskpoints'),None)
+        if bandskpoints is None:
+            flagbands=False
+        else:
+	    flagbands=True
+	    if not isinstance(bandskpoints,  KpointsData):
+                raise InputValidationError("kpoints for bands is not of type KpointsData")
+
+
 
         
         pseudos = {}
@@ -352,7 +370,7 @@ class SiestaCalculation(JobCalculation):
         # --------------- K-POINTS ----------------
         if kpoints is not None:
             #
-            # Get a mesh, or a list of kpoints with weights
+            # Get a mesh for sampling
             # NOTE that there is not yet support for the 'kgrid-cutoff'
             # option in Siesta.
             #
@@ -387,6 +405,41 @@ class SiestaCalculation(JobCalculation):
                 kpoints_card += "%endblock kgrid_monkhorst_pack\n"
                 del kpoints_card_list
             
+ 
+        # --------------- K-POINTS-FOR-BANDS ----------------!
+        #This part is computed only if flagbands=True
+        #Two possibility are supported in Siesta: BandLines ad BandPoints
+	#At the moment the user can't choose directly one of the two options
+        #BandsLine is set automatically if bandskpoints has labels,
+        #BandsPoints if bandskpoints has no labels
+        #BandLinesScale =pi/a is not supported at the moment because currently 
+        #a=1 always. BandLinesScale ReciprocalLatticeVectors is always set
+        if flagbands:
+            bandskpoints_card_list = ["BandLinesScale ReciprocalLatticeVectors\n"]
+	    if bandskpoints.labels==None:
+                bandskpoints_card_list.append("%block BandPoints\n")
+		for s in bandskpoints.get_kpoints():
+                    bandskpoints_card_list.append("{0:8.3f} {1:8.3f} {2:8.3f} \n".format(s[0], s[1], s[2]))
+                fbkpoints_card = "".join(bandskpoints_card_list)
+                fbkpoints_card += "%endblock BandPoints\n"
+            else:
+	        bandskpoints_card_list.append("%block BandLines\n")
+	        savs=[]
+                listforbands = bandskpoints.get_kpoints()
+                for s,m in bandskpoints.labels:
+    		    savs.append(s)                
+    	        rawindex=0
+	        for s,m in bandskpoints.labels:
+    		    rawindex=rawindex+1
+    		    x, y, z = listforbands[s]
+    		    if rawindex==1:
+		       	bandskpoints_card_list.append("{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(1, x, y, z, m))
+    		    else:
+                        bandskpoints_card_list.append("{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(s-savs[rawindex-2], x, y, z, m))
+                fbkpoints_card = "".join(bandskpoints_card_list)
+                fbkpoints_card += "%endblock BandLines\n"
+            del bandskpoints_card_list
+
         # ================ Namelists and cards ===================
         
         input_filename = tempfolder.get_abs_path(self._INPUT_FILE_NAME)
@@ -415,6 +468,9 @@ class SiestaCalculation(JobCalculation):
             if kpoints is not None:
                 infile.write("#\n# -- K-points Info follows\n#\n")
                 infile.write(kpoints_card)
+	    if flagbands:
+		infile.write("#\n# -- Bandlines/Bandpoints Info follows\n#\n")
+	        infile.write(fbkpoints_card)
 
         # operations for restart
         # copy remote output dir, if specified
@@ -441,7 +497,7 @@ class SiestaCalculation(JobCalculation):
         #is replaced by mpirun ... pw.x ... -in aiida.in
         # in the scheduler, _get_run_line, if cmdline_params is empty, it 
         # simply uses < calcinfo.stin_name
-        #
+        
         if cmdline_params: 
             calcinfo.cmdline_params = list(cmdline_params)
         calcinfo.local_copy_list = local_copy_list
@@ -463,13 +519,18 @@ class SiestaCalculation(JobCalculation):
         calcinfo.codes_info = [codeinfo]
 
         # Retrieve by default the output file and the xml file
+	# If flagbands=True we also add the bands file to the retrieve list!
+	# This is extremely important because the parser parses the bands
+	# only if aiida.bands is in the retrieve list!!
         calcinfo.retrieve_list = []         
         calcinfo.retrieve_list.append(self._OUTPUT_FILE_NAME)
         calcinfo.retrieve_list.append(self._XML_FILE_NAME)
+        if flagbands:
+	    calcinfo.retrieve_list.append(self._BANDS_FILE_NAME)
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
             [])
         calcinfo.retrieve_list += settings_retrieve_list
-        calcinfo.retrieve_list += [ self._OUTPUT_FILE_NAME ]
+#        calcinfo.retrieve_list += [ self._OUTPUT_FILE_NAME ]
 
         #
         # This is probably unnecessary... we have been using the functionality
@@ -573,7 +634,7 @@ class SiestaCalculation(JobCalculation):
 
         self.use_parent_folder(remotedata)
 
-    def create_restart(self,force_restart=False):
+    def create_restart(self,force_restart=False): #bandskpoints non implemented yet
         """
         Function to restart a calculation that was not completed before 
         (like max walltime reached...) i.e. not to restart a really FAILED
