@@ -47,6 +47,8 @@ def get_pseudos_from_structure(structure, family_name):
             
     return pseudo_list
 
+
+
 def upload_psf_family(folder, group_name, group_description,
                       stop_if_existing=True):
     """
@@ -67,8 +69,8 @@ def upload_psf_family(folder, group_name, group_description,
     from aiida.common import aiidalogger
     from aiida.orm import Group
     from aiida.common.exceptions import UniquenessError, NotExistent
-    from aiida.djsite.utils import get_automatic_user
-
+    from aiida.backends.utils import get_automatic_user
+    from aiida.orm import QueryBuilder    
     if not os.path.isdir(folder):
         raise ValueError("folder must be a directory")
     
@@ -104,24 +106,34 @@ def upload_psf_family(folder, group_name, group_description,
     
     for f in files:
         md5sum = aiida.common.utils.md5_file(f)
-        existing_psf = PsfData.query(dbattributes__key="md5",
-                                     dbattributes__tval = md5sum)
+        qb = QueryBuilder()
+        qb.append(PsfData, filters={'attributes.md5':{'==':md5sum}})  
+        existing_psf = qb.first()
+ 
+        #existing_psf = PsfData.query(dbattributes__key="md5",
+         #                            dbattributes__tval = md5sum)
         
-        if len(existing_psf) == 0:
+     
+
+        if existing_psf is None:
             # return the psfdata instances, not stored
             pseudo, created = PsfData.get_or_create(f, use_first = True,
                                                     store_psf = False)
             # to check whether only one psf per element exists
             # NOTE: actually, created has the meaning of "to_be_created"
-            pseudo_and_created.append( (pseudo,created) )
+            pseudo_and_created.append((pseudo,created))
         else:
             if stop_if_existing:
-                raise ValueError("A PSF with identical MD5 to "+f+" cannot be added with stop_if_existing")
-            pseudo = existing_psf[0]
-            pseudo_and_created.append( (pseudo,False) )
+                raise ValueError(
+                        "A PSF with identical MD5 to "
+                        " {} cannot be added with stop_if_existing"
+                        "".format(f)
+                    )
+            existing_psf = existing_psf[0]
+            pseudo_and_created.append((existing_psf, False))
     
     # check whether pseudo are unique per element
-    elements = [ (i[0].element, i[0].md5sum) for i in pseudo_and_created ]
+    elements = [(i[0].element, i[0].md5sum) for i in pseudo_and_created ]
     # If group already exists, check also that I am not inserting more than
     # once the same element
     if not group_created:
@@ -181,7 +193,7 @@ def parse_psf(fname, check_filename = True):
 
     parsed_data = {}
 
-    with open(fname) as f:        
+    with open(fname) as f:
 
         # Parse the element
         element = None
@@ -192,7 +204,7 @@ def parse_psf(fname, check_filename = True):
         if element is None:
             raise ParsingError("Unable to find the element of PSF {}".format(
                     fname))
-            
+        element = element.capitalize()
         if element not in _valid_symbols:
             raise ParsingError("Unknown element symbol {} for file {}".format(
                 element, fname))
@@ -207,7 +219,10 @@ def parse_psf(fname, check_filename = True):
         parsed_data['element'] = element
 
     return parsed_data
-                
+
+
+
+
 
 class PsfData(SinglefileData): 
     """
@@ -320,6 +335,15 @@ class PsfData(SinglefileData):
             
         self._set_attr('element', str(element))
         self._set_attr('md5', md5sum)
+
+    def get_psf_family_names(self):
+        """
+        Get the list of all psf family names to which the pseudo belongs
+        """
+        from aiida.orm import Group
+
+        return [_.name for _ in Group.query(nodes=self,
+                                            type_string=self.psffamily_type_string)]
         
     @property
     def element(self):
@@ -334,7 +358,6 @@ class PsfData(SinglefileData):
         import aiida.common.utils
 
         super(PsfData,self)._validate()
-
 
         psf_abspath = self.get_file_abs_path()
         if not psf_abspath:
