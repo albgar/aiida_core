@@ -19,8 +19,8 @@ from aiida.common.constants import elements
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.5.0"
-__contributors__ = "Victor M. Garcia-Suarez, Alberto Garcia"
+__version__ = "0.7.0"
+__contributors__ = "Victor M. Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
 
 class SiestaCalculation(JobCalculation):
     """
@@ -530,15 +530,7 @@ class SiestaCalculation(JobCalculation):
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
             [])
         calcinfo.retrieve_list += settings_retrieve_list
-#        calcinfo.retrieve_list += [ self._OUTPUT_FILE_NAME ]
 
-        #
-        # This is probably unnecessary... we have been using the functionality
-        # all along...
-        #
-        #if settings_dict:
-        #   raise NotImplementedError('no settings implementation')
-        
         return calcinfo
 
     @classmethod

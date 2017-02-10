@@ -4,7 +4,7 @@ Siesta plugin issues
    stress. Trajectories (not implemented yet) will then contain only
    positions and forces.
 
--- I do not know how to deal with the "restart" capability.
+-- The "restart" capability is not implemented yet.
 
 -- K-point sampling for the scf cycle follows Siesta convention: the
    absence of a 'kpoints' node implies gamma-point sampling.
@@ -21,22 +21,29 @@ Siesta plugin issues
    Distinction between BandLines and BandPoints is automatically done
    looking for labels in bandskpoints: I assume it's reasonable to expect 
    some labels (Gamma, X, L, ...) when you define a line, no labels for points.
-   File /example/submission/siesta_cif_bands.py sould help to understand.
+
+   File /example/submission/test_siesta_cif_bands.py sould help to understand.
    Another possibility would be to set a flag in input.
+
    BandLinesScale ReciprocalLatticeVectors is always set.
+
    Bands are stored using the already implemented BandsData class and parsed
-   reading the ASCI file .bands (we have to discuss about .xml).
+   reading the ASCII file .bands (we have to discuss about .xml).
    You can easly export bands in various formats. Be aware that kpoints
    in siesta file .bands are in 2*pi/A where A in bohr, while
    in aiida A is in Ang (a factor 1.889725989 of difference).
    Kpoints for bands are stored twice, but it's the same for QuantumEspresso.
 
-   NOTE: The tests for the 'bands' functionality do not work yet. 
-   
+   NOTE: The tests for the 'bands' functionality do not work if
+   "bandlines" or "paths" are specified.
+      
 -- Units are now given in XX_units entries, but the XX itself might
    not be standard.
 
--- Basis-set info is now dealt with as a special set of parameters.
+-- Basis-set info is now dealt with as a special set of parameters,
+   but in raw form, which is not easily subject to queries.
+   
+   
 
 
 
