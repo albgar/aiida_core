@@ -205,18 +205,18 @@ def get_bands(self, bands_path):
 	raise NotImplementedError('if nspins=4 could be a non collinear calculation: not implemented yet')
     return bands                     
 
-def get_warnings_from_file(error_path):
+def get_warnings_from_file(messages_path):
      """
      Generates a list of warnings from the 'MESSAGES' file, which
      contains a line per message, prefixed with 'INFO',
      'WARNING' or 'FATAL'.
 
-     :param error_path: 
+     :param messages_path: 
 
      Returns a boolean indicating success (True) or failure (False)
      and a list of strings.
      """
-     f=open(error_path)
+     f=open(messages_path)
      lines=f.read().split('\n')   # There will be a final '' element
 
      import re
@@ -259,7 +259,7 @@ class SiestaParser(Parser):
         if not isinstance(calc,SiestaCalculation):
             raise ParsingError("Input calc must be a SiestaCalculation")
 
-    def _get_output_nodes(self, output_path, error_path, xml_path, bands_path):
+    def _get_output_nodes(self, output_path, messages_path, xml_path, bands_path):
         """
         Extracts output nodes from the standard output and standard error
         files. (And XML file)
@@ -301,11 +301,11 @@ class SiestaParser(Parser):
 
         # Add warnings
         successful = True
-        if error_path is None:
+        if messages_path is None:
              # Perhaps using an old version of Siesta
              warnings_list = ['WARNING: No MESSAGES file...']
         else:
-             successful, warnings_list = get_warnings_from_file(error_path)
+             successful, warnings_list = get_warnings_from_file(messages_path)
 
         result_dict["warnings"] = warnings_list
         
@@ -357,23 +357,23 @@ class SiestaParser(Parser):
         import os
 
         output_path = None
-        error_path  = None
+        messages_path  = None
         xml_path  = None
         bands_path = None
         try:
-            output_path, error_path, xml_path, bands_path = self._fetch_output_files(retrieved)
+            output_path, messages_path, xml_path, bands_path = self._fetch_output_files(retrieved)
         except InvalidOperation:
             raise
         except IOError as e:
             self.logger.error(e.message)
             return False, ()
 
-        if output_path is None and error_path is None and xml_path is None:
+        if output_path is None and messages_path is None and xml_path is None:
             self.logger.error("No output files found")
             return False, ()
 
         successful, out_nodes = self._get_output_nodes(output_path,
-                                           error_path,
+                                           messages_path,
                                            xml_path,
                                            bands_path)
         
@@ -406,7 +406,7 @@ class SiestaParser(Parser):
         list_of_files = out_folder.get_folder_list()
 
         output_path = None
-        error_path  = None
+        messages_path  = None
         xml_path  = None
 	bands_path = None
 
@@ -416,14 +416,14 @@ class SiestaParser(Parser):
         if self._calc._DEFAULT_XML_FILE in list_of_files:
             xml_path = os.path.join( out_folder.get_abs_path('.'),
                                         self._calc._DEFAULT_XML_FILE )
-        if self._calc._DEFAULT_ERROR_FILE in list_of_files:
-            error_path  = os.path.join( out_folder.get_abs_path('.'),
-                                        self._calc._DEFAULT_ERROR_FILE )
+        if self._calc._DEFAULT_MESSAGES_FILE in list_of_files:
+            messages_path  = os.path.join( out_folder.get_abs_path('.'),
+                                        self._calc._DEFAULT_MESSAGES_FILE )
         if self._calc._DEFAULT_BANDS_FILE in list_of_files:
             bands_path  = os.path.join( out_folder.get_abs_path('.'),
                                         self._calc._DEFAULT_BANDS_FILE )
 
-        return output_path, error_path, xml_path, bands_path
+        return output_path, messages_path, xml_path, bands_path
 
     def get_linkname_outstructure(self):
         """

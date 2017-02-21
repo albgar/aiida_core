@@ -52,7 +52,7 @@ class SiestaCalculation(JobCalculation):
         self._DEFAULT_INPUT_FILE = 'aiida.in'
         self._DEFAULT_OUTPUT_FILE = 'aiida.out'
         self._DEFAULT_XML_FILE = 'aiida.xml'
-        self._DEFAULT_ERROR_FILE = 'MESSAGES'
+        self._DEFAULT_MESSAGES_FILE = 'MESSAGES'
 	self._DEFAULT_BANDS_FILE = 'aiida.bands'
 
         self._PSEUDO_SUBFOLDER = './'
@@ -61,6 +61,7 @@ class SiestaCalculation(JobCalculation):
         self._INPUT_FILE_NAME = 'aiida.fdf'
         self._OUTPUT_FILE_NAME = 'aiida.out'
         self._XML_FILE_NAME = 'aiida.xml'
+        self._MESSAGES_FILE_NAME = 'MESSAGES'
 	self._BANDS_FILE_NAME = 'aiida.bands'
 
     @classproperty
@@ -515,6 +516,7 @@ class SiestaCalculation(JobCalculation):
         codeinfo.stdin_name = self._INPUT_FILE_NAME
         codeinfo.stdout_name = self._OUTPUT_FILE_NAME
         codeinfo.xml_name = self._XML_FILE_NAME
+        codeinfo.messages_name = self._MESSAGES_FILE_NAME
         codeinfo.code_uuid = code.uuid
         calcinfo.codes_info = [codeinfo]
 
@@ -525,6 +527,7 @@ class SiestaCalculation(JobCalculation):
         calcinfo.retrieve_list = []         
         calcinfo.retrieve_list.append(self._OUTPUT_FILE_NAME)
         calcinfo.retrieve_list.append(self._XML_FILE_NAME)
+        calcinfo.retrieve_list.append(self._MESSAGES_FILE_NAME)
         if flagbands:
 	    calcinfo.retrieve_list.append(self._BANDS_FILE_NAME)
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
