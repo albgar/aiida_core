@@ -22,7 +22,11 @@ def get_parsed_xml_doc(xml_path):
 
      from xml.dom import minidom
 
-     xmldoc = minidom.parse(xml_path)
+     try:
+          xmldoc = minidom.parse(xml_path)
+     except ExpatError:
+          pass
+
      return xmldoc
 
 def get_dict_from_xml_doc(xmldoc):
@@ -201,6 +205,41 @@ def get_bands(self, bands_path):
 	raise NotImplementedError('if nspins=4 could be a non collinear calculation: not implemented yet')
     return bands                     
 
+def get_warnings_from_file(error_path):
+     """
+     Generates a list of warnings from the 'MESSAGES' file, which
+     contains a line per message, prefixed with 'INFO',
+     'WARNING' or 'FATAL'.
+
+     :param error_path: 
+
+     Returns a boolean indicating success (True) or failure (False)
+     and a list of strings.
+     """
+     f=open(error_path)
+     lines=f.read().split('\n')   # There will be a final '' element
+
+     import re
+     
+     # Search for 'FATAL:' messages and return immediately
+     for line in lines:
+          if re.match('^FATAL:.*$',line):
+               return False, lines[:-1]  # Remove last (empty) element
+
+     # Make sure that the job did finish (and was not interrupted
+     # externally)
+
+     if lines[-2] != 'INFO: Job completed':
+          lines[-1] = 'FATAL: Job did not finish'
+          return False, lines
+
+     # (Insert any other "non-success" conditions before next section)
+     # (e.g.: be very picky about (some) 'WARNING:' messages)
+     
+     # Return with success flag
+     
+     return True, lines[:-1]  # Remove last (empty) element
+
 #----------------------------------------------------------------------
 #----------------------------------------------------------------------
 class SiestaParser(Parser):
@@ -228,7 +267,7 @@ class SiestaParser(Parser):
         from aiida.orm.data.array.trajectory import TrajectoryData
         import re
 
-        parser_version = '0.5.1-bands'
+        parser_version = '0.6.0-warnings'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser v{}'.format(parser_version)
         parser_info['parser_items'] = ['Metadata','Scalars','End Structure']
@@ -260,6 +299,16 @@ class SiestaParser(Parser):
 
         result_dict = get_dict_from_xml_doc(xmldoc)
 
+        # Add warnings
+        successful = True
+        if error_path is None:
+             # Perhaps using an old version of Siesta
+             warnings_list = ['WARNING: No MESSAGES file...']
+        else:
+             successful, warnings_list = get_warnings_from_file(error_path)
+
+        result_dict["warnings"] = warnings_list
+        
         # Add parser info dictionary
         parsed_dict = dict(result_dict.items() + parser_info.items())
 
@@ -296,7 +345,7 @@ class SiestaParser(Parser):
 	    arraybands.set_bands(bands,units="eV")
 	    result_list.append((self.get_linkname_bandsarray(),arraybands))
 	
-        return result_list
+        return successful, result_list
 
     def parse_with_retrieved(self,retrieved):
         """
@@ -323,7 +372,12 @@ class SiestaParser(Parser):
             self.logger.error("No output files found")
             return False, ()
 
-        return True, self._get_output_nodes(output_path, error_path, xml_path, bands_path)
+        successful, out_nodes = self._get_output_nodes(output_path,
+                                           error_path,
+                                           xml_path,
+                                           bands_path)
+        
+        return successful, out_nodes
 
     def _fetch_output_files(self, retrieved):
         """

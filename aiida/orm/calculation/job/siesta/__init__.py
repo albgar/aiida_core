@@ -52,7 +52,7 @@ class SiestaCalculation(JobCalculation):
         self._DEFAULT_INPUT_FILE = 'aiida.in'
         self._DEFAULT_OUTPUT_FILE = 'aiida.out'
         self._DEFAULT_XML_FILE = 'aiida.xml'
-        self._DEFAULT_ERROR_FILE = 'aiida.err'
+        self._DEFAULT_ERROR_FILE = 'MESSAGES'
 	self._DEFAULT_BANDS_FILE = 'aiida.bands'
 
         self._PSEUDO_SUBFOLDER = './'
