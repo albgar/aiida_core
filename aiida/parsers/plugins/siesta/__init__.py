@@ -133,6 +133,8 @@ def get_final_forces_and_stress(xmldoc):
  #
  itemlist = xmldoc.getElementsByTagName('module')
 
+ scf_final = None
+ final = None
  for m in itemlist:
      if m.attributes.has_key('title'):
           # Get last scf finalization module
@@ -142,31 +144,37 @@ def get_final_forces_and_stress(xmldoc):
           if m.attributes['title'].value == "Finalization":
                final = m
 
- props = scf_final.getElementsByTagName('property')
- for p in props:
-   if p.attributes.has_key('dictRef'):
-     if p.attributes['dictRef'].value=='siesta:forces':
-          mat = p.getElementsByTagName('matrix')[0]
-          # Get flat list and reshape as list of lists
-          # using info on rows and columns in CML file
-          rows = int(mat.attributes['rows'].value)
-          cols = int(mat.attributes['columns'].value)
-          f = mat.childNodes[0].data.split()
-          f = [float(x) for x in f]
-          forces = [ f[rows*i : rows*(i+1)] for i in range(cols)]
+ forces = None
+ stress = None
 
- props = final.getElementsByTagName('property')
- for p in props:
-   if p.attributes.has_key('dictRef'):
-     if p.attributes['dictRef'].value=='siesta:stress':
-          mat = p.getElementsByTagName('matrix')[0]
-          # Get flat list and reshape as list of lists
-          # using info on rows and columns in CML file
-          rows = int(mat.attributes['rows'].value)
-          cols = int(mat.attributes['columns'].value)
-          s = mat.childNodes[0].data.split()
-          s = [float(x) for x in s]
-          stress = [ s[rows*i : rows*(i+1)] for i in range(cols)]
+ if scf_final is not None:
+      props = scf_final.getElementsByTagName('property')
+
+      for p in props:
+        if p.attributes.has_key('dictRef'):
+           if p.attributes['dictRef'].value=='siesta:forces':
+                mat = p.getElementsByTagName('matrix')[0]
+                # Get flat list and reshape as list of lists
+                # using info on rows and columns in CML file
+                rows = int(mat.attributes['rows'].value)
+                cols = int(mat.attributes['columns'].value)
+                f = mat.childNodes[0].data.split()
+                f = [float(x) for x in f]
+                forces = [ f[rows*i : rows*(i+1)] for i in range(cols)]
+
+ if final is not None:
+      props = final.getElementsByTagName('property')
+      for p in props:
+        if p.attributes.has_key('dictRef'):
+           if p.attributes['dictRef'].value=='siesta:stress':
+                mat = p.getElementsByTagName('matrix')[0]
+                # Get flat list and reshape as list of lists
+                # using info on rows and columns in CML file
+                rows = int(mat.attributes['rows'].value)
+                cols = int(mat.attributes['columns'].value)
+                s = mat.childNodes[0].data.split()
+                s = [float(x) for x in s]
+                stress = [ s[rows*i : rows*(i+1)] for i in range(cols)]
           
  return forces, stress
 
@@ -343,13 +351,14 @@ class SiestaParser(Parser):
 
         # Save forces and stress in an ArrayData object
         forces, stress = get_final_forces_and_stress(xmldoc)
-        
-        from aiida.orm.data.array import ArrayData
-        import numpy
-        arraydata = ArrayData()
-        arraydata.set_array('forces', numpy.array(forces))
-        arraydata.set_array('stress', numpy.array(stress))
-        result_list.append((self.get_linkname_outarray(),arraydata))
+
+        if forces is not None and stress is not None:
+             from aiida.orm.data.array import ArrayData
+             import numpy
+             arraydata = ArrayData()
+             arraydata.set_array('forces', numpy.array(forces))
+             arraydata.set_array('stress', numpy.array(stress))
+             result_list.append((self.get_linkname_outarray(),arraydata))
 
         # Parse band-structure information if available
         if bands_path is not None:
