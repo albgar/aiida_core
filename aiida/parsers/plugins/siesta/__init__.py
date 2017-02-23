@@ -24,8 +24,8 @@ def get_parsed_xml_doc(xml_path):
 
      try:
           xmldoc = minidom.parse(xml_path)
-     except ExpatError:
-          pass
+     except:
+          xmldoc = None
 
      return xmldoc
 
@@ -68,7 +68,13 @@ def get_dict_from_xml_doc(xmldoc):
      scalar_dict['variable_geometry'] = is_variable_geometry(xmldoc)
      return scalar_dict
 
+
 def is_variable_geometry(xmldoc):
+     """
+     Tries to guess whether the calculation involves changes in
+     geometry. It needs at least one 'SCF finalization' item
+     """
+     
      itemlist = xmldoc.getElementsByTagName('module')
      geom_steps = 0
      for m in itemlist:
@@ -242,6 +248,13 @@ def get_warnings_from_file(messages_path):
 
 #----------------------------------------------------------------------
 #----------------------------------------------------------------------
+
+from aiida.parsers.exceptions import OutputParsingError
+
+class SiestaOutputParsingError(OutputParsingError):
+     pass
+#---------------------------
+
 class SiestaParser(Parser):
     """
     Parser for the output of siesta.
@@ -255,9 +268,8 @@ class SiestaParser(Parser):
         super(SiestaParser, self).__init__(calc)
 
     def _check_calc_compatibility(self,calc):
-        from aiida.common.exceptions import ParsingError
         if not isinstance(calc,SiestaCalculation):
-            raise ParsingError("Input calc must be a SiestaCalculation")
+            raise SiestaOutputParsingError("Input calc must be a SiestaCalculation")
 
     def _get_output_nodes(self, output_path, messages_path, xml_path, bands_path):
         """
@@ -278,11 +290,14 @@ class SiestaParser(Parser):
 
         if xml_path is None:
             self.logger.error("Could not find a CML file to parse")
-            raise ParsingError("Could not find a CML file to parse")
+            raise SiestaOutputParsingError("Could not find a CML file to parse")
         
         # We get everything from the CML file
 
         xmldoc = get_parsed_xml_doc(xml_path)
+        if xmldoc is None:
+            self.logger.error("Malformed CML file: cannot parse")
+            raise SiestaOutputParsingError("Malformed CML file: cannot parse")
         
         # These are examples of how we can access input items
         #
