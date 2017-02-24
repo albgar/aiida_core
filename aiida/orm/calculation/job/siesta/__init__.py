@@ -473,6 +473,13 @@ class SiestaCalculation(JobCalculation):
 		infile.write("#\n# -- Bandlines/Bandpoints Info follows\n#\n")
 	        infile.write(fbkpoints_card)
 
+            # Write max wall-clock time
+            infile.write("#\n# -- Max wall-clock time block\n#\n")
+            infile.write(
+              "max.walltime {}".format(self.get_max_wallclock_seconds()))
+
+        # ------------------------------------- END of fdf file creation
+        
         # operations for restart
         # copy remote output dir, if specified
         if parent_calc_folder is not None:
@@ -507,8 +514,9 @@ class SiestaCalculation(JobCalculation):
         calcinfo.stdin_name = self._INPUT_FILE_NAME
         calcinfo.stdout_name = self._OUTPUT_FILE_NAME
         calcinfo.xml_name = self._XML_FILE_NAME
+        calcinfo.messages_name = self._MESSAGES_FILE_NAME
 
-                #
+        #
         # Code information object
         #
         codeinfo = CodeInfo()
