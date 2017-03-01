@@ -64,6 +64,13 @@ class SiestaCalculation(JobCalculation):
         self._MESSAGES_FILE_NAME = 'MESSAGES'
 	self._BANDS_FILE_NAME = 'aiida.bands'
 
+        # in restarts, it will copy from the parent the following
+        self._restart_copy_from = os.path.join(self._OUTPUT_SUBFOLDER, '*.DM')
+
+        # in restarts, it will copy the previous folder in the following one
+        self._restart_copy_to = self._OUTPUT_SUBFOLDER
+
+
     @classproperty
     def _use_methods(cls):
         """
@@ -260,6 +267,7 @@ class SiestaCalculation(JobCalculation):
         ##############################
         # END OF INITIAL INPUT CHECK #
         ##############################
+
 
         # First-level keys as uppercase (i.e., namelist and card names)
         # and the second-level keys as lowercase
@@ -482,6 +490,7 @@ class SiestaCalculation(JobCalculation):
         
         # operations for restart
         # copy remote output dir, if specified
+        
         if parent_calc_folder is not None:
             remote_copy_list.append(
                     (parent_calc_folder.get_computer().uuid,
@@ -630,18 +639,17 @@ class SiestaCalculation(JobCalculation):
             raise ValueError('remotedata must be a RemoteData')
         
         # complain if another remotedata is already found
-        input_remote = self.get_inputs(type=RemoteData)
+        input_remote = self.get_inputs(node_type=RemoteData)
         if input_remote:
             raise ValidationError("Cannot set several parent calculation to a "
                 "{} calculation".format(self.__class__.__name__))
 
         self.use_parent_folder(remotedata)
 
-    def create_restart(self,force_restart=False): #bandskpoints non implemented yet
+    def create_restart(self,force_restart=False): 
         """
         Function to restart a calculation that was not completed before 
-        (like max walltime reached...) i.e. not to restart a really FAILED
-        calculation.
+        (like max walltime reached...) 
  
         Returns a calculation c2, with all links prepared but not stored in DB.
         To submit it simply:
@@ -667,8 +675,14 @@ class SiestaCalculation(JobCalculation):
         calc_inp = self.get_inputs_dict()
         
         old_inp_dict = calc_inp['parameters'].get_dict()
+        
         # add the restart flag
-        old_inp_dict['CONTROL']['restart_mode'] = 'restart'
+        # In Siesta, this could be the option to read the DM, if
+        # the restart is due to lack of convergence, but in general
+        # one would need to pick up the latest structure if doing
+        # geometry optimizations ...
+        
+        old_inp_dict['dm-use-save-dm'] = True
         inp_dict = ParameterData(dict=old_inp_dict) 
         
         remote_folders = self.get_outputs(type=RemoteData)
@@ -681,9 +695,28 @@ class SiestaCalculation(JobCalculation):
         
         # set the new links
         c2.use_parameters(inp_dict)
+
+        #
+        # To meaningfully use the latest structure from
+        # an aborted calculation, we need to implement trajectories
+        # For now, test restarts of non-converged single-point calculations
+        
         c2.use_structure(calc_inp['structure'])
-        if self._use_kpoints:
-            c2.use_kpoints(calc_inp['kpoints'])
+
+        try:
+            old_kpoints = calc_inp['kpoints']
+        except KeyError:
+            old_kpoints = None
+        if old_kpoints is not None:
+            c2.use_kpoints(old_kpoints)
+
+        try:
+            old_bandkpoints = calc_inp['bandkpoints']
+        except KeyError:
+            old_bandkpoints = None
+        if old_bandkpoints is not None:
+            c2.use_bandkpoints(old_bandkpoints)
+            
         c2.use_code(calc_inp['code'])
         try:
             old_settings_dict = calc_inp['settings'].get_dict()
@@ -695,8 +728,12 @@ class SiestaCalculation(JobCalculation):
             c2.use_settings(settings)
             
         c2._set_parent_remotedata( remote_folder )
+
+        # This is too simple to deal with various kinds sharing
+        # the same pseudo! As the pseudo is stored in the database,
+        # we need to record the associated kinds in the calculation, somehow.
         
-        for pseudo in self.get_inputs(type=PsfData):
+        for pseudo in self.get_inputs(node_type=PsfData):
             c2.use_pseudo(pseudo, kind=pseudo.element)
         
         return c2
