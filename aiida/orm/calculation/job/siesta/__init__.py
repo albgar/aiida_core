@@ -465,9 +465,10 @@ class SiestaCalculation(JobCalculation):
             # put any basis-related parameters (including blocks)
             # in the basis dictionary in the input script.
             #
-            infile.write("#\n# -- Basis Set Info follows\n#\n")
-            for k, v in input_basis.iteritems():
-                infile.write(get_input_data_text(k,v))
+            if basis is not None:
+              infile.write("#\n# -- Basis Set Info follows\n#\n")
+              for k, v in input_basis.iteritems():
+                  infile.write(get_input_data_text(k,v))
 
             # Write previously generated cards now
             infile.write("#\n# -- Structural Info follows\n#\n")
@@ -648,9 +649,16 @@ class SiestaCalculation(JobCalculation):
 
     def create_restart(self,force_restart=False): 
         """
-        Function to restart a calculation that was not completed before 
-        (like max walltime reached...) 
+        Simple Function to restart a calculation that was not completed
+        (for example, due to max walltime reached, or lack of convergence)
  
+        This version requests that the density-matrix file be copied
+        from the old calculation's output folder, and sets an fdf option to
+        read it upon start. Other possibilites might be given by extra arguments
+        in the future.
+
+        No support for updated structures in variable-geometry runs yet.
+
         Returns a calculation c2, with all links prepared but not stored in DB.
         To submit it simply:
         c2.store_all()
@@ -664,7 +672,6 @@ class SiestaCalculation(JobCalculation):
         # Check the calculation's state using ``from_attribute=True`` to
         # correctly handle IMPORTED calculations.
         if self.get_state(from_attribute=True) != calc_states.FINISHED:
-        #if self.get_state() != calc_states.FINISHED:
             if force_restart:
                 pass
             else:
@@ -673,7 +680,7 @@ class SiestaCalculation(JobCalculation):
                     "flag".format(calc_states.FINISHED) )
         
         calc_inp = self.get_inputs_dict()
-        
+
         old_inp_dict = calc_inp['parameters'].get_dict()
         
         # add the restart flag
@@ -681,6 +688,10 @@ class SiestaCalculation(JobCalculation):
         # the restart is due to lack of convergence, but in general
         # one would need to pick up the latest structure if doing
         # geometry optimizations ...
+
+        # Warning: we need a way to canonicalize the fdf options...
+        # or in this case an "order-preserving" dictionary to put
+        # this option at the beginning...
         
         old_inp_dict['dm-use-save-dm'] = True
         inp_dict = ParameterData(dict=old_inp_dict) 
@@ -694,14 +705,34 @@ class SiestaCalculation(JobCalculation):
         c2 = self.copy()
         
         # set the new links
+
+        c2.use_code(calc_inp['code'])
+        c2._set_parent_remotedata( remote_folder )
+
+        # New fdf options
         c2.use_parameters(inp_dict)
 
-        #
+        # This is too simple to deal with various kinds sharing
+        # the same pseudo! As the pseudo is stored in the database,
+        # we need to record the associated kinds in the calculation, somehow.
+        
+        for pseudo in self.get_inputs(node_type=PsfData):
+            c2.use_pseudo(pseudo, kind=pseudo.element)
+
         # To meaningfully use the latest structure from
         # an aborted calculation, we need to implement trajectories
         # For now, test restarts of non-converged single-point calculations
         
         c2.use_structure(calc_inp['structure'])
+
+        # These are optional...
+        
+        try:
+            old_basis = calc_inp['basis']
+        except KeyError:
+            old_basis = None
+        if old_basis is not None:
+            c2.use_basis(old_basis)
 
         try:
             old_kpoints = calc_inp['kpoints']
@@ -711,13 +742,12 @@ class SiestaCalculation(JobCalculation):
             c2.use_kpoints(old_kpoints)
 
         try:
-            old_bandkpoints = calc_inp['bandkpoints']
+            old_bandskpoints = calc_inp['bandskpoints']
         except KeyError:
-            old_bandkpoints = None
-        if old_bandkpoints is not None:
-            c2.use_bandkpoints(old_bandkpoints)
+            old_bandskpoints = None
+        if old_bandskpoints is not None:
+            c2.use_bandskpoints(old_bandskpoints)
             
-        c2.use_code(calc_inp['code'])
         try:
             old_settings_dict = calc_inp['settings'].get_dict()
         except KeyError:
@@ -726,15 +756,6 @@ class SiestaCalculation(JobCalculation):
         if old_settings_dict: # if not empty dictionary
             settings = ParameterData(dict=old_settings_dict)
             c2.use_settings(settings)
-            
-        c2._set_parent_remotedata( remote_folder )
-
-        # This is too simple to deal with various kinds sharing
-        # the same pseudo! As the pseudo is stored in the database,
-        # we need to record the associated kinds in the calculation, somehow.
-        
-        for pseudo in self.get_inputs(node_type=PsfData):
-            c2.use_pseudo(pseudo, kind=pseudo.element)
         
         return c2
 
