@@ -26,7 +26,7 @@ class SiestaCalculation(JobCalculation):
     """
     Add docs
     """
-    _siesta_plugin_version = '0.5.1-bands'
+    _siesta_plugin_version = 'aiida-0.7--plugin-0.6.0'
     
     def _init_internal_params(self):
         super(SiestaCalculation, self)._init_internal_params()
@@ -34,7 +34,8 @@ class SiestaCalculation(JobCalculation):
         # Default Siesta output parser provided by AiiDA
         self._default_parser = "siesta"
 
-        # Keywords that cannot be set                                           
+        # Keywords that cannot be set
+        # We need to canonicalize this!
         self._aiida_blocked_keywords = ['systemname','systemlabel']
         self._aiida_blocked_keywords.append('system-name')
         self._aiida_blocked_keywords.append('system-label')
@@ -65,6 +66,7 @@ class SiestaCalculation(JobCalculation):
 	self._BANDS_FILE_NAME = 'aiida.bands'
 
         # in restarts, it will copy from the parent the following
+        # (fow now, just the density matrix file)
         self._restart_copy_from = os.path.join(self._OUTPUT_SUBFOLDER, '*.DM')
 
         # in restarts, it will copy the previous folder in the following one
@@ -163,8 +165,10 @@ class SiestaCalculation(JobCalculation):
             if not isinstance(settings,  ParameterData):
                 raise InputValidationError("settings, if specified, must be of "
                                            "type ParameterData")
-            # Settings converted to uppercase
-            # WHY??
+            
+            # Settings converted to UPPERCASE
+            # Presumably to standardize the usage and avoid
+            # ambiguities
             settings_dict = _uppercase_dict(settings.get_dict(),
                                             dict_name='settings')
 
@@ -538,18 +542,21 @@ class SiestaCalculation(JobCalculation):
         codeinfo.code_uuid = code.uuid
         calcinfo.codes_info = [codeinfo]
 
-        # Retrieve by default the output file and the xml file
+        # Retrieve by default: the output file, the xml file, and the
+        # messages file.
 	# If flagbands=True we also add the bands file to the retrieve list!
 	# This is extremely important because the parser parses the bands
 	# only if aiida.bands is in the retrieve list!!
+        
         calcinfo.retrieve_list = []         
         calcinfo.retrieve_list.append(self._OUTPUT_FILE_NAME)
         calcinfo.retrieve_list.append(self._XML_FILE_NAME)
         calcinfo.retrieve_list.append(self._MESSAGES_FILE_NAME)
         if flagbands:
 	    calcinfo.retrieve_list.append(self._BANDS_FILE_NAME)
-        settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
-            [])
+
+        # Any other files specified in the settings dictionary
+        settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',[])
         calcinfo.retrieve_list += settings_retrieve_list
 
         return calcinfo

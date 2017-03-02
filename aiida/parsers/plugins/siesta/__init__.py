@@ -46,7 +46,13 @@ def get_dict_from_xml_doc(xmldoc):
      # From the last module ("Finalization")
      # wrapped in <property> elements with a <scalar> child
      itemlist = xmldoc.getElementsByTagName('module')
-     # 
+     #
+     # In a calculation that ends too soon, the last module
+     # is likely to be a "Geom. Optim" one, and not the
+     # "Finalization" one. This has to be checked. As it is now,
+     # the loop below does not find any relevant pieces of
+     # data, wich is OK, barely.
+     
      finalmodule = itemlist[-1]
      props = finalmodule.getElementsByTagName('property')
 
@@ -94,7 +100,12 @@ def get_last_structure(xmldoc, input_structure):
     # Final structure from the last module ("Finalization")
 
     itemlist = xmldoc.getElementsByTagName('module')
-    # 
+    #
+    # In a calculation that ends too soon, the last module
+    # is likely to be a "Geom. Optim" one, and not the
+    # "Finalization" one. This has to be checked. As it is now,
+    # this code finds the last structure, wich is OK, barely.
+
     finalmodule = itemlist[-1]
     atoms = finalmodule.getElementsByTagName('atom')
     cellvectors = finalmodule.getElementsByTagName('latticeVector')
@@ -179,9 +190,10 @@ def get_final_forces_and_stress(xmldoc):
  return forces, stress
 
 
-#The parsing is different whether I have Bands or Points.
-#I recognise this two situations looking at bandskpoints.label
-#(like I did in the plugin)
+# The parsing is different depending on whether I have Bands or Points.
+# I recognise these two situations by looking at bandskpoints.label
+# (like I did in the plugin)
+
 def get_bands(self, bands_path):
     import numpy as np
     from aiida.common.exceptions import InputValidationError
@@ -216,7 +228,7 @@ def get_bands(self, bands_path):
     elif (nspins==1):
 	bands = spinup
     else:
-	raise NotImplementedError('if nspins=4 could be a non collinear calculation: not implemented yet')
+	raise NotImplementedError('nspins=4: non collinear spin bands not implemented yet')
     return bands                     
 
 def get_warnings_from_file(messages_path):
@@ -255,7 +267,6 @@ def get_warnings_from_file(messages_path):
      return True, lines[:-1]  # Remove last (empty) element
 
 #----------------------------------------------------------------------
-#----------------------------------------------------------------------
 
 from aiida.parsers.exceptions import OutputParsingError
 
@@ -265,7 +276,7 @@ class SiestaOutputParsingError(OutputParsingError):
 
 class SiestaParser(Parser):
     """
-    Parser for the output of siesta.
+    Parser for the output of Siesta.
     """
     def __init__(self,calc):
         """
@@ -287,9 +298,9 @@ class SiestaParser(Parser):
         from aiida.orm.data.array.trajectory import TrajectoryData
         import re
 
-        parser_version = '0.6.0-warnings'
+        parser_version = 'aiida-0.7--plugin-0.6.0'
         parser_info = {}
-        parser_info['parser_info'] = 'AiiDA Siesta Parser v{}'.format(parser_version)
+        parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
         parser_info['parser_items'] = ['Metadata','Scalars','End Structure']
         parser_info['parser_warnings'] = []
 
