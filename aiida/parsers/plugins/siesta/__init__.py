@@ -27,6 +27,8 @@ def get_parsed_xml_doc(xml_path):
      except:
           xmldoc = None
 
+     # We might want to add some extra consistency checks
+     
      return xmldoc
 
 def get_dict_from_xml_doc(xmldoc):
@@ -78,35 +80,37 @@ def get_dict_from_xml_doc(xmldoc):
 def is_variable_geometry(xmldoc):
      """
      Tries to guess whether the calculation involves changes in
-     geometry. It needs at least one 'SCF finalization' item
+     geometry.
      """
      
      itemlist = xmldoc.getElementsByTagName('module')
-     geom_steps = 0
      for m in itemlist:
-          if m.attributes.has_key('title'):
-               if m.attributes['title'].value == "SCF Finalization":
-                    geom_steps += 1
+       # Check the type of the first "step" module, which is a "geometry" one
+       if m.attributes.has_key('serial'):
+         if m.attributes['dictRef'].value == "Single-Point":
+              return False
+         else:
+              return True
 
-     if (geom_steps > 1):
-          return True
-     else:
-          return False
-
+     # If we reach this point, something is very wrong
+     return False
+     
 def get_last_structure(xmldoc, input_structure):
 
     from aiida.orm import DataFactory
 
-    # Final structure from the last module ("Finalization")
-
     itemlist = xmldoc.getElementsByTagName('module')
     #
-    # In a calculation that ends too soon, the last module
-    # is likely to be a "Geom. Optim" one, and not the
-    # "Finalization" one. This has to be checked. As it is now,
-    # this code finds the last structure, wich is OK, barely.
+    # Use the last "geometry" module, and not the
+    # "Finalization" one.
 
-    finalmodule = itemlist[-1]
+    finalmodule = None
+    for m in itemlist:
+    # Get a "geometry" module by the criteria:
+    if m.attributes.has_key('serial'):
+         if m.attributes['dictRef'].value != "SCF":
+              finalmodule = m
+
     atoms = finalmodule.getElementsByTagName('atom')
     cellvectors = finalmodule.getElementsByTagName('latticeVector')
 
@@ -139,30 +143,31 @@ def get_last_structure(xmldoc, input_structure):
                         
 def get_final_forces_and_stress(xmldoc):
  #
- # Extracts forces and stresses as lists of lists...
- # Where do I put them??
+ # Extracts final forces and stress as lists of lists...
  #
  itemlist = xmldoc.getElementsByTagName('module')
 
+ # Note: In modern versions of Siesta, forces and stresses
+ # are written in the "SCF Finalization" modules at the end
+ # of each geometry step.
+
+ # Search for the last one of those modules
+ 
  scf_final = None
- final = None
  for m in itemlist:
      if m.attributes.has_key('title'):
           # Get last scf finalization module
           if m.attributes['title'].value == "SCF Finalization":
                scf_final = m
-          # Get (the only) finalization module
-          if m.attributes['title'].value == "Finalization":
-               final = m
 
  forces = None
  stress = None
 
  if scf_final is not None:
       props = scf_final.getElementsByTagName('property')
-
       for p in props:
         if p.attributes.has_key('dictRef'):
+
            if p.attributes['dictRef'].value=='siesta:forces':
                 mat = p.getElementsByTagName('matrix')[0]
                 # Get flat list and reshape as list of lists
@@ -173,10 +178,6 @@ def get_final_forces_and_stress(xmldoc):
                 f = [float(x) for x in f]
                 forces = [ f[rows*i : rows*(i+1)] for i in range(cols)]
 
- if final is not None:
-      props = final.getElementsByTagName('property')
-      for p in props:
-        if p.attributes.has_key('dictRef'):
            if p.attributes['dictRef'].value=='siesta:stress':
                 mat = p.getElementsByTagName('matrix')[0]
                 # Get flat list and reshape as list of lists
@@ -186,7 +187,7 @@ def get_final_forces_and_stress(xmldoc):
                 s = mat.childNodes[0].data.split()
                 s = [float(x) for x in s]
                 stress = [ s[rows*i : rows*(i+1)] for i in range(cols)]
-          
+
  return forces, stress
 
 
