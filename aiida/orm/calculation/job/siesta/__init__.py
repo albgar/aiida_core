@@ -719,18 +719,28 @@ class SiestaCalculation(JobCalculation):
         # New fdf options
         c2.use_parameters(inp_dict)
 
-        # This is too simple to deal with various kinds sharing
-        # the same pseudo! As the pseudo is stored in the database,
-        # we need to record the associated kinds in the calculation, somehow.
-        
-        for pseudo in self.get_inputs(node_type=PsfData):
-            c2.use_pseudo(pseudo, kind=pseudo.element)
+        # Pseudopotentials
 
-        # To meaningfully use the latest structure from
-        # an aborted calculation, we need to implement trajectories
-        # For now, test restarts of non-converged single-point calculations
-        
-        c2.use_structure(calc_inp['structure'])
+        for link in calc_inp.keys():
+            # Is it a pseudo node?
+            if link.startswith(self._get_linkname_pseudo_prefix()):
+                # Process the kinds associated to this pseudo
+                kindstring = link[len(self._get_linkname_pseudo_prefix()):]
+                kinds = kindstring.split('_')
+
+                # Add the pseudo to the new calculation
+                the_pseudo = calc_inp[link]
+                c2.use_pseudo(the_pseudo, kind=kinds)
+
+        # We use the latest structure from
+        # an aborted calculation, if available
+
+        calc_out = self.get_outputs_dict()
+        try:
+            new_structure = calc_out['output_structure']
+            c2.use_structure(new_structure)
+        except KeyError:
+            c2.use_structure(calc_inp['structure'])
 
         # These are optional...
         
