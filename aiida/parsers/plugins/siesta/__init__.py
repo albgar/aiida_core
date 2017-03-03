@@ -106,8 +106,8 @@ def get_last_structure(xmldoc, input_structure):
 
     finalmodule = None
     for m in itemlist:
-    # Get a "geometry" module by the criteria:
-    if m.attributes.has_key('serial'):
+      # Get a "geometry" module by the criteria:
+      if m.attributes.has_key('serial'):
          if m.attributes['dictRef'].value != "SCF":
               finalmodule = m
 
