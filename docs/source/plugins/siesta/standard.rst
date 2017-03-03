@@ -6,7 +6,7 @@ Description
 
 A plugin for Siesta's basic functionality. There remain some details to address.
 
-These docs are for version: *aiida-0.7--plugin-0.6.0* of the plugin,
+These docs are for version: *aiida-0.7--plugin-0.6.1* of the plugin,
 which is compatible with AiiDA v.0.7.0 (modified to include a kpoints.py
 module from v0.7.1)
 
@@ -28,6 +28,7 @@ Inputs
 ------
 
 * **structure**, class :py:class:`StructureData <aiida.orm.data.structure.StructureData>`
+
 A structure. Siesta employs "species labels" to implement special
 conditions (such as basis set characteristics) for specific atoms
 (e.g., surface atoms might have a richer basis set). This is
@@ -55,10 +56,8 @@ implemented through the 'name' attribute of the Site objects. For example::
    s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 
 
-This feature works well in normal use, but the association of
-pseudos to multiple species is not currently working for restarts.
-    
 * **parameters**, class :py:class:`ParameterData <aiida.orm.data.parameter.ParameterData>`
+
 A dictionary with scalar fdf variables and blocks, which are the
 basic elements of any Siesta input file. A given Siesta fdf file
 can be cast almost directly into this dictionary form, except that
@@ -96,7 +95,7 @@ above::
 
 Alternatively, a pseudo for every atomic species can be set with the
 **use_pseudos_from_family**  method, if a family of pseudopotentials
-has been installed. (But the family approach will not support
+has been installed. (But the family approach does not yet support
 multiple species sharing the same pseudopotential.)
 
 * **basis**, class :py:class:`ParameterData  <aiida.orm.data.parameter.ParameterData>`
@@ -197,6 +196,24 @@ Errors of the parsing are reported in the log of the calculation (accessible
 with the ``verdi calculation logshow`` command). 
 Moreover, they are stored in the ParameterData under the key ``warnings``, and are
 accessible with ``Calculation.res.warnings``.
+
+Restarts
+--------
+
+A restarting capability is implemented following the basic idiom::
+
+  c = load_node(Failed_Calc_PK)
+  c2 = c.create_restart(force_restart=True)
+  c2.store_all()
+  c2.submit()
+
+The density-matrix file is copied from the old calculation scratch
+folder to the new calculation's one. If an **ouput_structure** node
+is available, it is used as the structure for restarting.
+
+This approach enables continuation of (variable-geometry) runs which
+have failed due to lack of time or insufficient convergence in the
+allotted number of steps.
 
 .. _siesta-advanced-features:
 

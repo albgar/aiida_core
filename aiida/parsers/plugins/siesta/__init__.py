@@ -299,7 +299,7 @@ class SiestaParser(Parser):
         from aiida.orm.data.array.trajectory import TrajectoryData
         import re
 
-        parser_version = 'aiida-0.7--plugin-0.6.0'
+        parser_version = 'aiida-0.7--plugin-0.6.1'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
         parser_info['parser_items'] = ['Metadata','Scalars','End Structure']
