@@ -15,7 +15,7 @@ __contributors__ = "Andrius Merkys, Giovanni Pizzi, Victor Garcia-Suarez, Albert
 #
 # List of scalar values from CML to be transferred to AiiDA
 #
-standard_output_list = [ 'siesta:FreeEK', 'siesta:Etot',
+standard_output_list = [ 'siesta:FreeE', 'siesta:E_KS',
                          'siesta:Ebs', 'siesta:E_Fermi']
 
 def get_parsed_xml_doc(xml_path):
@@ -45,23 +45,28 @@ def get_dict_from_xml_doc(xmldoc):
          scalar_dict[name] = value
 
      # Scalar output items
-     # From the last module ("Finalization")
-     # wrapped in <property> elements with a <scalar> child
-     itemlist = xmldoc.getElementsByTagName('module')
-     #
-     # In a calculation that ends too soon, the last module
-     # is likely to be a "Geom. Optim" one, and not the
-     # "Finalization" one. This has to be checked. As it is now,
-     # the loop below does not find any relevant pieces of
-     # data, wich is OK, barely.
+     # From the last "SCF Finalization" module 
+     # This means that we do not record non-converged values
      
-     finalmodule = itemlist[-1]
-     props = finalmodule.getElementsByTagName('property')
+     itemlist = xmldoc.getElementsByTagName('module')
 
-     for s in props:
-       if s.attributes.has_key('dictRef'):
-         name = s.attributes['dictRef'].value
-         if name in standard_output_list:
+     scf_final = None
+     for m in itemlist:
+       if m.attributes.has_key('title'):
+          # Get last scf finalization module
+          if m.attributes['title'].value == "SCF Finalization":
+               scf_final = m
+
+     if scf_final is not None:
+
+      # wrapped in <property> elements with a <scalar> child
+      props = scf_final.getElementsByTagName('property')
+
+     
+      for s in props:
+        if s.attributes.has_key('dictRef'):
+          name = s.attributes['dictRef'].value
+          if name in standard_output_list:
              data = s.getElementsByTagName('scalar')[0]
              value = data.childNodes[0].nodeValue
              units = data.attributes['units'].value
@@ -299,7 +304,7 @@ class SiestaParser(Parser):
         from aiida.orm.data.array.trajectory import TrajectoryData
         import re
 
-        parser_version = 'aiida-0.7--plugin-0.6.1'
+        parser_version = 'aiida-0.7--plugin-0.6.2'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
         parser_info['parser_items'] = ['Metadata','Scalars','End Structure']
@@ -317,7 +322,7 @@ class SiestaParser(Parser):
         xmldoc = get_parsed_xml_doc(xml_path)
         if xmldoc is None:
             self.logger.error("Malformed CML file: cannot parse")
-            raise SiestaOutputParsingError("Malformed CML file: cannot parse")
+            raise
         
         # These are examples of how we can access input items
         #
@@ -471,7 +476,6 @@ class SiestaParser(Parser):
     def get_linkname_outarray(self):
         """                                                                     
         Returns the name of the link to the output_array                        
-        In QE, Node may exist in case of calculation='scf'                             
         In Siesta, Node exists to hold the final forces and stress,
         pending the implementation of trajectory data.
         """
