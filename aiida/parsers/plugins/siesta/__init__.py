@@ -203,47 +203,6 @@ def get_final_forces_and_stress(xmldoc):
  return forces, stress
 
 
-# The parsing is different depending on whether I have Bands or Points.
-# I recognise these two situations by looking at bandskpoints.label
-# (like I did in the plugin)
-
-def get_bands(self, bands_path):
-    import numpy as np
-    from aiida.common.exceptions import InputValidationError
-    from aiida.common.exceptions import ValidationError
-    tottx = []
-    f=open(bands_path)
-    tottx=f.read().split()
-    ef = float(tottx[0])
-    if self._calc.inp.bandskpoints.labels==None:
-        minfreq,maxfreq = float(tottx[1]), float(tottx[2])
-        nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(tottx[5])
-	spinup=np.zeros((nkpoints,nbands))
-	spindown=np.zeros((nkpoints,nbands))
-        for i in range(nkpoints):
-            for j in range(nbands):
-                spinup[i,j]=(float(tottx[i*(nbands*2+3)+6+j+3]))
-                if (nspins==2):
-                    spindown[i,j]=(float(tottx[i*(nbands*2+3)+6+j+3+nbands]))   
-    else:
-        mink,maxk = float(tottx[1]), float(tottx[2])
-        minfreq,maxfreq = float(tottx[3]), float(tottx[4])
-        nbands, nspins, nkpoints = int(tottx[5]), int(tottx[6]), int(tottx[7])
-        spinup=np.zeros((nkpoints,nbands))
-        spindown=np.zeros((nkpoints,nbands))
-        for i in range(nkpoints):
-            for j in range(nbands):
-                spinup[i,j]=(float(tottx[i*(nbands*2+1)+8+j+1]))
-       	        if (nspins==2):
-            	    spindown[i,j]=(float(tottx[i*(nbands*2+1)+8+j+1+nbands]))
-    if (nspins==2):
-	bands = (spinup, spindown)
-    elif (nspins==1):
-	bands = spinup
-    else:
-	raise NotImplementedError('nspins=4: non collinear spin bands not implemented yet')
-    return bands                     
-
 #----------------------------------------------------------------------
 
 from aiida.parsers.exceptions import OutputParsingError
@@ -350,7 +309,7 @@ class SiestaParser(Parser):
 
         # Parse band-structure information if available
         if bands_path is not None:
-	    bands = get_bands(self,bands_path)
+	    bands = self.get_bands(bands_path)
 	    from aiida.orm.data.array.bands import BandsData
 	    arraybands = BandsData()
             arraybands.set_kpoints(self._calc.inp.bandskpoints.get_kpoints(cartesian=True))
@@ -473,6 +432,59 @@ class SiestaParser(Parser):
      # Return with success flag
      
      return True, lines[:-1]  # Remove last (empty) element
+
+
+    def get_bands(self,bands_path):
+         
+         # The parsing is different depending on whether I have Bands or Points.
+         # I recognise these two situations by looking at bandskpoints.label
+         # (like I did in the plugin)
+         import numpy as np
+         from aiida.common.exceptions import InputValidationError
+         from aiida.common.exceptions import ValidationError
+         tottx = []
+         f=open(bands_path)
+         tottx=f.read().split()
+         
+         ef = float(tottx[0])
+         if self._calc.inp.bandskpoints.labels==None:
+              minfreq,maxfreq = float(tottx[1]), float(tottx[2])
+              nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(tottx[5])
+	      spinup=np.zeros((nkpoints,nbands))
+	      spindown=np.zeros((nkpoints,nbands))
+              if (nspins==2):
+                   block_length= nbands*2
+              else:
+                   block_length= nbands
+              for i in range(nkpoints):
+                   for j in range(nbands):
+                        spinup[i,j]=(float(tottx[i*(block_length+3)+6+j+3]))
+                        if (nspins==2):
+                             spindown[i,j]=(float(tottx[i*(nbands*2+3)+6+j+3+nbands]))   
+         else:
+              mink,maxk = float(tottx[1]), float(tottx[2])
+              minfreq,maxfreq = float(tottx[3]), float(tottx[4])
+              nbands, nspins, nkpoints = int(tottx[5]), int(tottx[6]), int(tottx[7])
+              spinup=np.zeros((nkpoints,nbands))
+              spindown=np.zeros((nkpoints,nbands))
+              if (nspins==2):
+                   block_length= nbands*2
+              else:
+                   block_length= nbands
+             
+              for i in range(nkpoints):
+                   for j in range(nbands):
+                        spinup[i,j]=(float(tottx[i*(block_length+1)+8+j+1]))
+       	                if (nspins==2):
+            	             spindown[i,j]=(float(tottx[i*(nbands*2+1)+8+j+1+nbands]))
+         if (nspins==2):
+	      bands = (spinup, spindown)
+         elif (nspins==1):
+	      bands = spinup
+         else:
+	      raise NotImplementedError('nspins=4: non collinear bands not implemented yet')
+         
+         return bands                     
 
     def get_linkname_outstructure(self):
         """

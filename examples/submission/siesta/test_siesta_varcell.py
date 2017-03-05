@@ -94,8 +94,8 @@ parameters = ParameterData(dict={
                 'Solution-method': 'diagon',
                 'electronic-temperature': '25 meV',
                 'md:typeofrun': 'cg',
-                'md:numcgsteps': 3,
-                'md:maxcgdispl': '0.1 Ang',
+                'md:numcgsteps': 20,
+                'md-variable-cell': True,
                 'md:maxforcetol': '0.04 eV/Ang',
                 'xml:write': True
                 })
@@ -103,7 +103,7 @@ parameters = ParameterData(dict={
 basis = ParameterData(dict={
 'pao-energy-shift': '300 meV',
 '%block pao-basis-sizes': """
-Si DZP                    """,
+Si SZP                    """,
 })
 
 kpoints = KpointsData()
@@ -114,7 +114,7 @@ kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 
 calc = code.new_calc()
 calc.label = "Si bulk"
-calc.description = "Test calculation with the Siesta code. Si bulk"
+calc.description = "Test calculation with the Siesta code. Si bulk varcell"
 calc.set_max_wallclock_seconds(30*60) # 30 min
 
 #------------ clarify this
