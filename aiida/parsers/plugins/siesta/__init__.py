@@ -244,41 +244,6 @@ def get_bands(self, bands_path):
 	raise NotImplementedError('nspins=4: non collinear spin bands not implemented yet')
     return bands                     
 
-def get_warnings_from_file(messages_path):
-     """
-     Generates a list of warnings from the 'MESSAGES' file, which
-     contains a line per message, prefixed with 'INFO',
-     'WARNING' or 'FATAL'.
-
-     :param messages_path: 
-
-     Returns a boolean indicating success (True) or failure (False)
-     and a list of strings.
-     """
-     f=open(messages_path)
-     lines=f.read().split('\n')   # There will be a final '' element
-
-     import re
-     
-     # Search for 'FATAL:' messages and return immediately
-     for line in lines:
-          if re.match('^FATAL:.*$',line):
-               return False, lines[:-1]  # Remove last (empty) element
-
-     # Make sure that the job did finish (and was not interrupted
-     # externally)
-
-     if lines[-2] != 'INFO: Job completed':
-          lines[-1] = 'FATAL: Job did not finish'
-          return False, lines
-
-     # (Insert any other "non-success" conditions before next section)
-     # (e.g.: be very picky about (some) 'WARNING:' messages)
-     
-     # Return with success flag
-     
-     return True, lines[:-1]  # Remove last (empty) element
-
 #----------------------------------------------------------------------
 
 from aiida.parsers.exceptions import OutputParsingError
@@ -351,7 +316,7 @@ class SiestaParser(Parser):
              # Perhaps using an old version of Siesta
              warnings_list = ['WARNING: No MESSAGES file...']
         else:
-             successful, warnings_list = get_warnings_from_file(messages_path)
+             successful, warnings_list = self.get_warnings_from_file(messages_path)
 
         result_dict["warnings"] = warnings_list
         
@@ -471,6 +436,43 @@ class SiestaParser(Parser):
                                         self._calc._DEFAULT_BANDS_FILE )
 
         return output_path, messages_path, xml_path, bands_path
+
+    def get_warnings_from_file(self,messages_path):
+     """
+     Generates a list of warnings from the 'MESSAGES' file, which
+     contains a line per message, prefixed with 'INFO',
+     'WARNING' or 'FATAL'.
+
+     :param messages_path: 
+
+     Returns a boolean indicating success (True) or failure (False)
+     and a list of strings.
+     """
+     f=open(messages_path)
+     lines=f.read().split('\n')   # There will be a final '' element
+
+     import re
+     
+     # Search for 'FATAL:' messages and return immediately
+     for line in lines:
+          if re.match('^FATAL:.*$',line):
+               self.logger.error(line)
+               return False, lines[:-1]  # Remove last (empty) element
+
+     # Make sure that the job did finish (and was not interrupted
+     # externally)
+
+     if lines[-2] != 'INFO: Job completed':
+          lines[-1] = 'FATAL: Job did not finish'
+          self.logger.error("Calculation interrupted externally")
+          return False, lines
+
+     # (Insert any other "non-success" conditions before next section)
+     # (e.g.: be very picky about (some) 'WARNING:' messages)
+     
+     # Return with success flag
+     
+     return True, lines[:-1]  # Remove last (empty) element
 
     def get_linkname_outstructure(self):
         """
