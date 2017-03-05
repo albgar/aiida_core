@@ -16,7 +16,8 @@ __contributors__ = "Andrius Merkys, Giovanni Pizzi, Victor Garcia-Suarez, Albert
 # List of scalar values from CML to be transferred to AiiDA
 #
 standard_output_list = [ 'siesta:FreeE', 'siesta:E_KS',
-                         'siesta:Ebs', 'siesta:E_Fermi']
+                         'siesta:Ebs', 'siesta:E_Fermi',
+                         'siesta:stot']  ## leave svec for later
 
 def get_parsed_xml_doc(xml_path):
 
@@ -40,6 +41,10 @@ def get_dict_from_xml_doc(xmldoc):
      # Metadata items
      itemlist = xmldoc.getElementsByTagName('metadata')
      for s in itemlist:
+         #
+         # Maybe make sure that 'name' does not contain
+         # forbidden characters
+         #
          name = s.attributes['name'].value
          value = s.attributes['content'].value
          scalar_dict[name] = value
@@ -61,7 +66,6 @@ def get_dict_from_xml_doc(xmldoc):
 
       # wrapped in <property> elements with a <scalar> child
       props = scf_final.getElementsByTagName('property')
-
      
       for s in props:
         if s.attributes.has_key('dictRef'):
@@ -74,8 +78,11 @@ def get_dict_from_xml_doc(xmldoc):
              unit_name = units[loc_colon+1:]
              loc_colon = name.find(':')
              reduced_name = name[loc_colon+1:]
+
              # Put units in separate entries, as in QE
-             scalar_dict[reduced_name] = value
+             # Use numbers (floats) instead of strings
+             
+             scalar_dict[reduced_name] = float(value)
              scalar_dict[reduced_name+"_units"] = unit_name
 
      scalar_dict['variable_geometry'] = is_variable_geometry(xmldoc)
@@ -304,10 +311,9 @@ class SiestaParser(Parser):
         from aiida.orm.data.array.trajectory import TrajectoryData
         import re
 
-        parser_version = 'aiida-0.7--plugin-0.6.2'
+        parser_version = 'aiida-0.7--plugin-0.6.3'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
-        parser_info['parser_items'] = ['Metadata','Scalars','End Structure']
         parser_info['parser_warnings'] = []
 
 

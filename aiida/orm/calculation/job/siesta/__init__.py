@@ -26,7 +26,7 @@ class SiestaCalculation(JobCalculation):
     """
     Add docs
     """
-    _siesta_plugin_version = 'aiida-0.7--plugin-0.6.2'
+    _siesta_plugin_version = 'aiida-0.7--plugin-0.6.3'
     
     def _init_internal_params(self):
         super(SiestaCalculation, self)._init_internal_params()

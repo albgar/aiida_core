@@ -6,7 +6,7 @@ Description
 
 A plugin for Siesta's basic functionality. There remain some details to address.
 
-These docs are for version: *aiida-0.7--plugin-0.6.2* of the plugin,
+These docs are for version: *aiida-0.7--plugin-0.6.3* of the plugin,
 which is compatible with AiiDA v.0.7.0 (modified to include a kpoints.py
 module from v0.7.1)
 
@@ -151,16 +151,19 @@ appended to the key::
 
     {
       "siesta:Version": "siesta-4.0-540",
-      "E_fermi": "-3.24",
+      "E_fermi": -3.24,
 	  "E_fermi_units": "eV",
-      "FreeE": "-6656.2343"
+      "FreeE": -6656.2343
 	  "FreeE_units": "eV",
 	  "warnings": [ "INFO: Job Completed"]
 	}
 
 The scalar quantities to include are specified in a global-variable
 in the parser. Currently they are the Kohn-Sham, Free, Band, and Fermi
-energies.
+energies, and the total spin. These are converted to 'float'.
+As this dictionary is sorted, keys for program values and metadata are
+intermixed.
+
 
 The 'warnings' list contains program messages, labeled as INFO,
 WARNING, or FATAL, read directly from a MESSAGES file produced by
