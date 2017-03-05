@@ -4,19 +4,7 @@
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
 __version__ = "0.7.0"
-__contributors__ = "Andrea Cepellotti, Victor Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
-
-#
-# This is an example of a calculation that will end in a FAILED state due
-# to lack of scf convergence in the allotted number of iterations.
-# To restart, either in a verdi shell or via a script, do:
-#
-# c = load_node(PK)
-# c2 = c.create_restart(force_restart=True)
-# c2.store_all()
-# c2.submit()
-#
-# (You can use the 'test_siesta_restart.py' script)
+__contributors__ = "Andrea Cepellotti, Victor Garcia-Suarez, Alberto Garcia"
 
 import sys
 import os
@@ -101,20 +89,20 @@ parameters = ParameterData(dict={
                 'xc:authors': 'CA',
                 'spinpolarized': True,
                 'meshcutoff': '40.000 Ry',
+                'maxscfiterations': 50,
                 'dm:numberpulay': 4,
                 'dm:mixingweight': 0.3,
                 'dm:tolerance': 1.e-3,
-                'max-scfiterations': 3,
-                'scf-must-converge': True,
                 'Solution-method': 'diagon',
                 'electronic-temperature': '25 meV',
                 'md:typeofrun': 'cg',
-                'md:numcgsteps': 0,
+                'md:numcgsteps': 3,
                 'md:maxcgdispl': '0.1 Ang',
                 'md:maxforcetol': '0.04 eV/Ang',
                 'writeforces': True,
                 'writecoorstep': True,
-                'xml:write': True
+                'xml:write': True,
+                'dm:usesavedm': True
                 })
 
 basis = ParameterData(dict={
@@ -129,16 +117,28 @@ kpoints = KpointsData()
 kpoints_mesh = 4
 kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 
-
+# to retrieve the bands
 # (the object settings is optional)
 settings_dict={'test_key': 'test_value'}
 settings = ParameterData(dict=settings_dict)
 
-calc = code.new_calc()
-calc.label = "Si_bulk"
-calc.description = "Siesta scf non-convergence test"
-calc.set_max_wallclock_seconds(100) 
+## For remote codes, it is not necessary to manually set the computer,
+## since it is set automatically by new_calc
+#computer = code.get_remote_computer()
+#calc = code.new_calc(computer=computer)
 
+calc = code.new_calc()
+calc.label = "Si bulk"
+calc.description = "Test calculation with the Siesta code. Si bulk"
+calc.set_max_wallclock_seconds(30*60) # 30 min
+
+#------------ clarify this
+# Valid only for Slurm and PBS (using default values for the
+# number_cpus_per_machine), change for SGE-like schedulers 
+## Otherwise, to specify a given # of cpus per machine, uncomment the following:
+# calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 8})
+#calc.set_resources({"parallel_env": 'openmpi',"tot_num_mpiprocs": 1,"num_machines": 1,"num_cpus": 2})
+#------------ clarify this
 calc.set_resources({"num_machines": 1})
 
 #calc.set_custom_scheduler_commands("#SBATCH --account=ch3")
@@ -163,7 +163,7 @@ else:
 
     for fname, kinds, in raw_pseudos:
       absname = os.path.realpath(os.path.join(os.path.dirname(__file__),
-                                            "data",fname))
+                                            "../data",fname))
       pseudo, created = PsfData.get_or_create(absname,use_first=True)
       if created:
         print "Created the pseudo for {}".format(kinds)
@@ -175,19 +175,10 @@ else:
 
 calc.use_kpoints(kpoints)
 
-# K-points for bands
-# NOTE: bandskpoints.set_cell(s.cell, s.pbc) HAS TO BE SET ALWAYS ###
-bandskpoints = KpointsData()
-
-##..kp path automatically generated from structure (all high-simmetry point)..##
-##.....labels automatically included, 0.05 is the distance between kpoints....##
-bandskpoints.set_cell(s.cell, s.pbc)
-bandskpoints.set_kpoints_path(kpoint_distance = 0.05)
-
-calc.use_bandskpoints(bandskpoints)
-
 if settings is not None:
     calc.use_settings(settings)
+#from aiida.orm.data.remote import RemoteData
+#calc.set_outdir(remotedata)
 
 if submit_test:
     subfolder, script_filename = calc.submit_test()

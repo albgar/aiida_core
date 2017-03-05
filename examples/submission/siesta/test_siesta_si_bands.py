@@ -4,7 +4,7 @@
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
 __version__ = "0.7.0"
-__contributors__ = "Andrea Cepellotti, Victor Garcia-Suarez, Alberto Garcia"
+__contributors__ = "Andrea Cepellotti, Victor Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
 
 import sys
 import os
@@ -117,7 +117,7 @@ kpoints = KpointsData()
 kpoints_mesh = 4
 kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 
-# to retrieve the bands
+
 # (the object settings is optional)
 settings_dict={'test_key': 'test_value'}
 settings = ParameterData(dict=settings_dict)
@@ -128,8 +128,8 @@ settings = ParameterData(dict=settings_dict)
 #calc = code.new_calc(computer=computer)
 
 calc = code.new_calc()
-calc.label = "Si bulk"
-calc.description = "Test calculation with the Siesta code. Si bulk"
+calc.label = "Si_bulk"
+calc.description = "Siesta test calculation. Si bulk + automatic bands"
 calc.set_max_wallclock_seconds(30*60) # 30 min
 
 #------------ clarify this
@@ -163,7 +163,7 @@ else:
 
     for fname, kinds, in raw_pseudos:
       absname = os.path.realpath(os.path.join(os.path.dirname(__file__),
-                                            "data",fname))
+                                            "../data",fname))
       pseudo, created = PsfData.get_or_create(absname,use_first=True)
       if created:
         print "Created the pseudo for {}".format(kinds)
@@ -174,6 +174,30 @@ else:
       calc.use_pseudo(pseudo,kind=kinds)
 
 calc.use_kpoints(kpoints)
+
+# K-points for bands, uncomment your favourite  --------------------
+# NOTE: bandskpoints.set_cell(s.cell, s.pbc) HAS TO BE SET ALWAYS ###
+bandskpoints = KpointsData()
+
+##..Set a path, label needed, 40 is number of kp between W-L and between L-G..##
+#kpp = [('W',  (0.500,  0.250, 0.750), 'L', (0.500,  0.500, 0.500), 40),
+#        ('L', (0.500,  0.500, 0.500), 'G', (0., 0., 0.), 40)]
+#bandskpoints.set_cell(s.cell, s.pbc)
+#bandskpoints.set_kpoints(kpp)
+
+
+##..........................Only points, no labels............................##
+#kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
+#bandskpoints.set_cell(s.cell, s.pbc)
+#bandskpoints.set_kpoints(kpp)
+
+##..kp path automatically generated from structure (all high-simmetry point)..##
+##.....labels automatically included, 0.05 is the distance between kpoints....##
+# Not available in 0.5.0...
+bandskpoints.set_cell(s.cell, s.pbc)
+bandskpoints.set_kpoints_path(kpoint_distance = 0.05)
+
+calc.use_bandskpoints(bandskpoints)
 
 if settings is not None:
     calc.use_settings(settings)

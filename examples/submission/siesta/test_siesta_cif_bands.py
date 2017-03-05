@@ -58,7 +58,7 @@ calc.use_settings(settings)
 #
 # Structure -----------------------------------------
 #
-structure = mg.Structure.from_file("data/O2_ICSD_173933.cif", primitive=False)
+structure = mg.Structure.from_file("../data/O2_ICSD_173933.cif", primitive=False)
 s = StructureData(pymatgen_structure=structure)
 elements = list(s.get_symbols_set())
 calc.use_structure(s)
@@ -134,7 +134,7 @@ raw_pseudos = [ ("O.psf", 'O')]
 
 for fname, kinds, in raw_pseudos:
     absname = os.path.realpath(os.path.join(os.path.dirname(__file__),
-                                            "data",fname))
+                                            "../data",fname))
     pseudo, created = PsfData.get_or_create(absname,use_first=True)
     if created:
         print "Created the pseudo for {}".format(kinds)
