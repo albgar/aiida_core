@@ -87,7 +87,7 @@ params_dict= {
     'xc.functional': 'LDA',
     'xc.authors': 'CA',
     'mesh-cutoff': '100.000 Ry',
-    'maxscfiterations': 30,
+    'max-scfiterations': 30,
     'dm-numberpulay': 4,
     'dm-mixingweight': 0.1,
     'dm-tolerance': 1.e-4,

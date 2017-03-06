@@ -89,7 +89,7 @@ parameters = ParameterData(dict={
                 'xc:authors': 'CA',
                 'spinpolarized': True,
                 'meshcutoff': '40.000 Ry',
-                'maxscfiterations': 50,
+                'max-scfiterations': 50,
                 'dm:numberpulay': 4,
                 'dm:mixingweight': 0.3,
                 'dm:tolerance': 1.e-3,

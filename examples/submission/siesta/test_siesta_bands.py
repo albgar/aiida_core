@@ -72,10 +72,13 @@ calc.use_bandskpoints(bandskpoints)
 
 #
 # Make sure that we do a single-point calculation
-#
+# This is fragile, as it depends on these keys being
+# in the same form as in the original calculation.
+
 new_input_dict = calc.inp.parameters.get_dict()
 new_input_dict['md-typeofrun'] = 'cg'
 new_input_dict['md-numcgsteps'] = 0
+new_input_dict['max-scfiterations'] = 0
 
 calc.use_parameters(ParameterData(dict=new_input_dict))
 

@@ -85,19 +85,19 @@ if auto_pseudos:
         sys.exit(1)
 
 parameters = ParameterData(dict={
-                'xc:functional': 'LDA',
-                'xc:authors': 'CA',
-                'maxscfiterations': 50,
-                'dm:numberpulay': 4,
-                'dm:mixingweight': 0.3,
-                'dm:tolerance': 1.e-3,
-                'Solution-method': 'diagon',
+                'xc-functional': 'LDA',
+                'xc-authors': 'CA',
+                'max-scfiterations': 50,
+                'dm-numberpulay': 4,
+                'dm-mixingweight': 0.3,
+                'dm-tolerance': 1.e-3,
+                'solution-method': 'diagon',
                 'electronic-temperature': '25 meV',
-                'md:typeofrun': 'cg',
-                'md:numcgsteps': 20,
-                'md-variable-cell': True,
-                'md:maxforcetol': '0.04 eV/Ang',
-                'xml:write': True
+                'md-typeofrun': 'cg',
+                'md-numcgsteps': 20,
+                'md-variablecell': True,
+                'md-maxforcetol': '0.04 eV/Ang',
+                'xml-write': True
                 })
 
 basis = ParameterData(dict={

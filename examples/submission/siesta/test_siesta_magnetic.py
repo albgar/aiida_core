@@ -77,7 +77,7 @@ params_dict= {
 'spin-polarized': True,
 'noncollinearspin': False,
 'mesh-cutoff': '150.000 Ry',
-'maxscfiterations': 40,
+'max-scfiterations': 40,
 'dm-numberpulay': 4,
 'dm-mixingweight': 0.1,
 'dm-tolerance': 1.e-3,
