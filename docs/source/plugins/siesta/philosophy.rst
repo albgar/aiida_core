@@ -9,12 +9,11 @@ Just one "structure" file should be needed...
 * Appropriate places for output
 
 Forces and Stresses should be output (in CML also) at each "state_analysis"
-step. Spin should too (it is currently in "siesta_analysis" at the
-end).
+step. Spin should too (done)
 
 * Restarting capabilities
 
-What should be the specifications?
+What should be the specifications? There are many use cases (to discuss)
 
 * Basis set specification
 
