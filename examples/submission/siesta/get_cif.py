@@ -9,7 +9,7 @@ __version__ = "0.7.0"
 __authors__ = "The AiiDA team."
 
 #
-# Prints initial and final structures for a calculation
+# Generates a CIF file with structural info
 #
 
 # Used to test the parent calculation
@@ -33,25 +33,23 @@ calc = load_node(int(calc_id))
 
 if isinstance(calc,SiestaCalc):
 
-    print "Calculation status: '{}'".format(calc.get_state())
-
     d=calc.out.output_parameters.get_dict()
-   
-    sin=calc.inp.structure
-    print "Input structure:"
-    print " Cell lengths: {}".format(sin.cell_lengths)
-    print " Cell angles: {}".format(sin.cell_angles)
-    print " Cell volume: {}".format(sin.get_cell_volume())
     
     if d['variable_geometry']:
-      try:
-        sout=calc.out.output_structure
-        print "Output structure:"
-        print " Cell lengths: {}".format(sout.cell_lengths)
-        print " Cell angles: {}".format(sout.cell_angles)
-        print " Cell volume: {}".format(sout.get_cell_volume())
-      except:
-        print "Output structure not available..."
+        try:
+            sout=calc.out.output_structure
+            msg = "Output structure"
+            print "{}".format(sout._prepare_cif())
+        except:
+            print ">> Output structure not available !!"
+            
+    else:
+        sin=calc.inp.output_structure
+        msg = "Input structure"
+        print "{}".format(sin._prepare_cif())
+
+    print "# -- Calculation status: '{}'".format(calc.get_state())
+    print "# -- {}".format(msg)
 
 else:
     print >> sys.stderr, ("Calculation should be a Siesta calculation.")
