@@ -17,3 +17,4 @@ Available plugins
    codtools/index
    ase/index
    nwchem/index
+   siesta/index

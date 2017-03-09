@@ -1,0 +1,20 @@
+Siesta plugin issues
+
+-- Trajectories are not implemented yet
+
+-- K-point sampling for the scf cycle follows Siesta convention: the
+   absence of a 'kpoints' node implies gamma-point sampling.
+   
+-- Band structure processing is still a bit fragile (work in progress)
+      
+-- Units are now given in XX_units entries, but the XX itself might
+   not be standard.
+
+-- Basis-set info is now dealt with as a special set of parameters,
+   but in raw form, which is not easily subject to queries.
+
+
+   
+
+
+

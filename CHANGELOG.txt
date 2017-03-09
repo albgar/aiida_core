@@ -1,3 +1,7 @@
+== Siesta Plugin code ==
+
+Please see docs/source/plugins/siesta
+
 == v0.7.1 ==
 
 Functionalities

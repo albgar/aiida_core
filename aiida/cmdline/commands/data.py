@@ -8,7 +8,7 @@ from aiida.cmdline.baseclass import (
 from aiida.cmdline.commands.node import _Label, _Description
 from aiida.common.exceptions import MultipleObjectsError
 
-__copyright__ = u"Copyright (c), This file is part of the AiiDA platform. For further information please visit http://www.aiida.net/. All rights reserved."
+__copyright__ = u"Copyright (c), This file is part of the AiiDA platform. For further information please visit http://www.aiida.net/. All rights reserved"
 __license__ = "MIT license, see LICENSE.txt file."
 __version__ = "0.7.1"
 __authors__ = "The AiiDA team."
@@ -29,6 +29,7 @@ class Data(VerdiCommandRouter):
         ## Add here the classes to be supported.
         self.routed_subcommands = {
             'upf': _Upf,
+            'psf': _Psf,
             'structure': _Structure,
             'bands': _Bands,
             'cif': _Cif,
@@ -771,6 +772,219 @@ class _Upf(VerdiCommandWithSubcommands, Importable):
         """
         try:
             node, _ = self.dataclass.get_or_create(filename)
+            print node
+        except ValueError as e:
+            print e
+
+
+class _Psf(VerdiCommandWithSubcommands,Importable):
+    """
+    Setup and manage psf to be used
+
+    This command allows to list and configure psf.
+    """
+    def __init__(self):
+        """
+        A dictionary with valid commands and functions to be called.
+        """
+        if not is_dbenv_loaded():
+            load_dbenv()
+        from aiida.orm.data.psf import PsfData
+
+        self.dataclass = PsfData
+        self.valid_subcommands = {
+            'uploadfamily': (self.uploadfamily, self.complete_auto),
+            'listfamilies': (self.listfamilies, self.complete_none),
+            'import': (self.importfile, self.complete_none),
+            'exportfamily': (self.exportfamily, self.complete_auto)
+            }
+   
+    def uploadfamily(self, *args):
+        """
+        Upload a new pseudopotential family.
+
+        Returns the numbers of files found and the number of nodes uploaded.
+
+        Call without parameters to get some help.
+        """
+#        import inspect
+#        import readline
+        import os.path
+
+#        from aiida.common.exceptions import NotExistent, ValidationError
+#        from aiida.orm import Computer as AiidaOrmComputer
+
+        if not len(args) == 3 and not len(args) == 4:
+            print >> sys.stderr, ("After 'psf uploadfamily' there should be three "
+                                  "arguments:")
+            print >> sys.stderr, ("folder, group_name, group_description "
+                                  "[OPTIONAL: --stop-if-existing]\n")
+            sys.exit(1)
+
+        folder            = os.path.abspath(args[0])
+        group_name        = args[1]
+        group_description = args[2]
+        stop_if_existing  = False
+
+        if len(args)==4:
+            if args[3]=="--stop-if-existing":
+                stop_if_existing  = True
+            else:
+                print >> sys.stderr, 'Unknown directive: '+args[3]
+                sys.exit(1)
+
+        if (not os.path.isdir(folder)):
+            print >> sys.stderr, 'Cannot find directory: '+folder
+            sys.exit(1)
+
+   #     load_dbenv()
+
+        import aiida.orm.data.psf as psf
+        files_found, files_uploaded = psf.upload_psf_family(folder, group_name,
+                                                            group_description, stop_if_existing)
+
+        print "PSF files found: {}. New files uploaded: {}".format(files_found,files_uploaded)
+
+
+    def listfamilies(self, *args):
+        """
+        Print on screen the list of psf families installed
+        """
+        # note that the following command requires that the psfdata has a
+        # key called element. As such, it is not well separated.
+        import argparse
+
+        parser = argparse.ArgumentParser(
+            prog=self.get_full_command_name(),
+            description='List AiiDA psf families.')
+        parser.add_argument('-e','--element',nargs='+', type=str, default=None,
+                            help="Filter the families only to those containing "
+                                 "a pseudo for each of the specified elements")
+        parser.add_argument('-d', '--with-description',
+                            dest='with_description',action='store_true',
+                            help="Show also the description for the PSF family")
+        parser.set_defaults(with_description=False)
+
+        args = list(args)
+        parsed_args = parser.parse_args(args)
+
+ #       load_dbenv()
+        from aiida.orm import DataFactory
+        from aiida.orm.data.psf import PSFGROUP_TYPE
+
+        PsfData = DataFactory('psf')
+        from aiida.orm.querybuilder import QueryBuilder
+        from aiida.orm.group import Group
+        qb = QueryBuilder()
+        qb.append(PsfData)
+        if parsed_args.element is not None:
+            qb.add_filter(PsfData, {'attributes.element': {'in': parsed_args.element}})
+        qb.append(
+            Group,
+            group_of=PsfData,
+            project=["name", "description"],
+            filters={"type": {'==': PSFGROUP_TYPE}}
+        )
+
+        qb.distinct()
+        if qb.count() > 0:
+            for res in qb.dict():
+                group_name = res.get("group").get("name")
+                group_desc = res.get("group").get("description")
+                qb = QueryBuilder()
+                qb.append(
+                    Group,
+                    filters={"name":  {'like': group_name}}
+                )
+                qb.append(
+                    PsfData,
+                    project=["id"],
+                    member_of=Group
+                )
+
+                if parsed_args.with_description:
+                    description_string = ": {}".format(group_desc)
+                else:
+                    description_string = ""
+
+                print "* {} [{} pseudos]{}".format(group_name, qb.count(),
+                                                   description_string)
+
+
+#        groups = PsfData.get_psf_groups(filter_elements=parsed_args.element)
+
+#        if groups:
+#            for g in groups:
+#                pseudos = PsfData.query(dbgroups=g.dbgroup).distinct()
+#                num_pseudos = pseudos.count()
+
+#                pseudos_list = pseudos.filter(
+#                                      dbattributes__key="element").values_list(
+#                                      'dbattributes__tval', flat=True)
+
+#                new_ps = pseudos.filter(
+#                                dbattributes__key="element").values_list(
+#                                'dbattributes__tval', flat=True)
+
+#                if parsed_args.with_description:
+#                    description_string = ": {}".format(g.description)
+#                else:
+#                    description_string = ""
+
+#                if num_pseudos != len(set(pseudos_list)):
+#                    print ("x {} [INVALID: {} pseudos, for {} elements]{}"
+#                           .format(g.name,num_pseudos,len(set(pseudos_list)),
+#                                   description_string))
+#                    print ("  Maybe the pseudopotential family wasn't "
+#                           "setup with the uploadfamily function?")
+#
+#                else:
+#                    print "* {} [{} pseudos]{}".format(g.name, num_pseudos,
+#                                                        description_string)
+        else:
+            print "No valid PSF pseudopotential family found."
+
+    def exportfamily(self, *args):
+        """
+        Export a pseudopotential family into a folder.
+        Call without parameters to get some help.
+        """
+        import os
+        from aiida.common.exceptions import NotExistent
+        from aiida.orm import DataFactory
+
+        if not len(args) == 2:
+            print >> sys.stderr, ("After 'psf export' there should be two "
+                                  "arguments:")
+            print >> sys.stderr, ("folder, psf_family_name\n")
+            sys.exit(1)
+
+        folder = os.path.abspath(args[0])
+        group_name = args[1]
+
+        PsfData = DataFactory('psf')
+        try:
+            group = PsfData.get_psf_group(group_name)
+        except NotExistent:
+            print >> sys.stderr, ("psf family {} not found".format(group_name))
+
+        for u in group.nodes:
+            dest_path = os.path.join(folder,u.filename)
+            if not os.path.isfile(dest_path):
+                with open(dest_path,'w') as dest:
+                    with u._get_folder_pathsubfolder.open(u.filename) as source:
+                        dest.write(source.read())
+            else:
+                print >> sys.stdout, ("File {} is already present in the "
+                                      "destination folder".format(u.filename))
+
+
+    def _import_psf(self,filename,**kwargs):
+        """
+        Importer from PSF.
+        """
+        try:
+            node,_ = self.dataclass.get_or_create(filename)
             print node
         except ValueError as e:
             print e
@@ -1813,3 +2027,6 @@ class _Array(VerdiCommandWithSubcommands, Visualizable):
             for arrayname in node.arraynames():
                 the_dict[arrayname] = node.get_array(arrayname).tolist()
             print_dictionary(the_dict, 'json+date')
+
+
+
